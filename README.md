@@ -1,9 +1,9 @@
-# @edge-store/shipping-methods-dsl
+# shipping-methods-dsl
 
-[![npm version](https://img.shields.io/npm/v/@edge-store/shipping-methods-dsl.svg)](https://www.npmjs.com/package/@edge-store/shipping-methods-dsl)
-![npm bundle size](https://img.shields.io/bundlephobia/min/@edge-store/shipping-methods-dsl)
-[![npm downloads](https://img.shields.io/npm/dm/@edge-store/shipping-methods-dsl.svg)](https://www.npmjs.com/package/@edge-store/shipping-methods-dsl)
-[![license](https://img.shields.io/npm/l/@edge-store/shipping-methods-dsl.svg)](https://github.com/minhtaimc/edge-store-shipping-methods-dsl/blob/main/LICENSE)
+[![npm version](https://img.shields.io/npm/v/shipping-methods-dsl.svg)](https://www.npmjs.com/package/shipping-methods-dsl)
+![npm bundle size](https://img.shields.io/bundlephobia/min/shipping-methods-dsl)
+[![npm downloads](https://img.shields.io/npm/dm/shipping-methods-dsl.svg)](https://www.npmjs.com/package/shipping-methods-dsl)
+[![license](https://img.shields.io/npm/l/shipping-methods-dsl.svg)](https://github.com/minhtaimc/edge-store-shipping-methods-dsl/blob/main/LICENSE)
 
 A powerful, type-safe DSL (Domain Specific Language) for defining and evaluating shipping methods across edge workers, frontend, and admin panels.
 
@@ -22,7 +22,7 @@ A powerful, type-safe DSL (Domain Specific Language) for defining and evaluating
 ## Installation
 
 ```bash
-npm install @edge-store/shipping-methods-dsl
+npm install shipping-methods-dsl
 ```
 
 ## Quick Start
@@ -31,7 +31,7 @@ npm install @edge-store/shipping-methods-dsl
 
 ```json
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/@edge-store/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
+  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
   "version": "1.0",
   "currency": "USD",
   "methods": [
@@ -55,7 +55,7 @@ import {
   validateShippingConfig,
   getAvailableShippingMethods,
   type EvaluationContext,
-} from "@edge-store/shipping-methods-dsl";
+} from "shipping-methods-dsl";
 
 // Load and validate config
 const config = validateShippingConfig(configJson);
@@ -249,7 +249,7 @@ Returns methods suitable for UI display, including disabled methods with unlock 
 Register custom pricing logic:
 
 ```typescript
-import { registerPricingPlugin } from "@edge-store/shipping-methods-dsl";
+import { registerPricingPlugin } from "shipping-methods-dsl";
 
 registerPricingPlugin("my_plugin", (config, context) => {
   // Your custom pricing logic
@@ -265,7 +265,7 @@ registerPricingPlugin("my_plugin", (config, context) => {
 import {
   type ShippingConfig,
   getAvailableShippingMethods,
-} from "@edge-store/shipping-methods-dsl";
+} from "shipping-methods-dsl";
 
 export default {
   async fetch(request: Request): Promise<Response> {
@@ -305,7 +305,7 @@ Use the JSON Schema for IDE autocomplete and validation:
 
 ```json
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/@edge-store/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json"
+  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json"
 }
 ```
 
@@ -320,7 +320,7 @@ import type {
   Pricing,
   EvaluationContext,
   ShippingCalculationResult,
-} from "@edge-store/shipping-methods-dsl";
+} from "shipping-methods-dsl";
 ```
 
 ## Development
@@ -356,7 +356,7 @@ Current version: **1.0.0**
 
 ## Links
 
-- [npm](https://www.npmjs.com/package/@edge-store/shipping-methods-dsl)
+- [npm](https://www.npmjs.com/package/shipping-methods-dsl)
 - [GitHub](https://github.com/minhtaimc/edge-store-shipping-methods-dsl)
 - [Examples](./examples/)
 - [Cloudflare Worker Compatibility](./CLOUDFLARE_WORKER_COMPATIBILITY.md)

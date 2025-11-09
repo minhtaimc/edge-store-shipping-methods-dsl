@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://cdn.jsdelivr.net/npm/@edge-store/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
+  "$id": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
   "title": "Shipping Methods v1.0",
   "type": "object",
   "required": ["version", "methods"],
