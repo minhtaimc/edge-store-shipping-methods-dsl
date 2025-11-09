@@ -1,0 +1,78 @@
+{
+  "$schema": "../schema/shipping-methods.v1.schema.json",
+  "version": "1.0",
+  "currency": "USD",
+  "methods": [
+    {
+      "id": "shipping.us.standard.flat",
+      "enabled": true,
+      "name": "Standard Shipping",
+      "description": "5-7 business days",
+      "icon": "📦",
+      "pricing": {
+        "type": "flat",
+        "amount": 5.99
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        }
+      }
+    },
+    {
+      "id": "shipping.us.express.item",
+      "enabled": true,
+      "name": "Express Shipping",
+      "description": "2-3 business days",
+      "icon": "⚡",
+      "display": {
+        "badge": "FAST"
+      },
+      "pricing": {
+        "type": "item_based",
+        "firstItemPrice": 12.99,
+        "additionalItemPrice": 2.5
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        },
+        "order": {
+          "items": {
+            "min": 1
+          }
+        }
+      }
+    },
+    {
+      "id": "shipping.intl.value",
+      "enabled": true,
+      "name": {
+        "en": "International Shipping",
+        "vi": "Giao hàng quốc tế"
+      },
+      "description": {
+        "en": "10-15 business days",
+        "vi": "10-15 ngày làm việc"
+      },
+      "icon": "🌍",
+      "pricing": {
+        "type": "value_based",
+        "percentage": 15,
+        "minAmount": 15,
+        "maxAmount": 50
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "exclude": ["US"]
+          }
+        }
+      }
+    }
+  ]
+}

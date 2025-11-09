@@ -1,0 +1,121 @@
+{
+  "$schema": "../schema/shipping-methods.v1.schema.json",
+  "version": "1.0",
+  "currency": "USD",
+  "methods": [
+    {
+      "id": "shipping.us.free.tiered",
+      "enabled": true,
+      "name": {
+        "en": "Free Shipping",
+        "vi": "Miễn phí vận chuyển"
+      },
+      "description": {
+        "en": "Unlock faster shipping with higher order values",
+        "vi": "Mở khóa vận chuyển nhanh hơn với đơn hàng giá trị cao hơn"
+      },
+      "icon": "🎁",
+      "display": {
+        "badge": "FREE",
+        "priority": 1,
+        "promoText": {
+          "en": "🎉 Free shipping unlocked!",
+          "vi": "🎉 Đã mở khóa miễn phí vận chuyển!"
+        }
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        },
+        "order": {
+          "value": {
+            "min": 50
+          }
+        }
+      },
+      "pricing": {
+        "type": "tiered",
+        "rules": [
+          {
+            "id": "standard",
+            "label": {
+              "en": "Free Standard",
+              "vi": "Tiêu chuẩn miễn phí"
+            },
+            "criteria": {
+              "order": {
+                "value": {
+                  "min": 50,
+                  "max": 99.99
+                }
+              }
+            },
+            "price": 0,
+            "estimatedDays": {
+              "min": 7,
+              "max": 10
+            },
+            "upgradeMessage": {
+              "en": "💡 Add ${remaining} more for FREE express shipping (2–3 days)",
+              "vi": "💡 Thêm ${remaining} để được miễn phí vận chuyển nhanh (2–3 ngày)"
+            }
+          },
+          {
+            "id": "express",
+            "label": {
+              "en": "Free Express",
+              "vi": "Nhanh miễn phí"
+            },
+            "criteria": {
+              "order": {
+                "value": {
+                  "min": 100
+                }
+              }
+            },
+            "price": 0,
+            "estimatedDays": {
+              "min": 2,
+              "max": 3
+            },
+            "promoText": {
+              "en": "🚀 You got FREE express shipping!",
+              "vi": "🚀 Bạn được miễn phí vận chuyển nhanh!"
+            }
+          }
+        ]
+      },
+      "availability": {
+        "mode": "show_disabled",
+        "when": ["order.value.min"],
+        "message": {
+          "en": "Add ${remaining} more to unlock free shipping",
+          "vi": "Thêm ${remaining} để được miễn phí giao hàng"
+        },
+        "showProgress": true
+      }
+    },
+    {
+      "id": "shipping.us.paid.standard",
+      "enabled": true,
+      "name": "Paid Standard Shipping",
+      "description": "5-7 business days",
+      "display": {
+        "priority": 2
+      },
+      "pricing": {
+        "type": "flat",
+        "amount": 5.99
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        }
+      }
+    }
+  ]
+}

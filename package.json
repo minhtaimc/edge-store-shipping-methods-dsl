@@ -1,0 +1,65 @@
+{
+  "name": "@edge-store/shipping-methods-dsl",
+  "version": "1.0.0",
+  "description": "Shipping methods DSL for edge workers, frontend, and admin panels",
+  "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./schema": "./schema/shipping-methods.v1.schema.json",
+    "./package.json": "./package.json"
+  },
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "schema",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "type-check": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "shipping",
+    "shipping-methods",
+    "dsl",
+    "edge-worker",
+    "cloudflare-workers",
+    "cloudflare",
+    "pricing",
+    "e-commerce",
+    "typescript",
+    "validation",
+    "arktype",
+    "cart",
+    "checkout",
+    "localization",
+    "i18n"
+  ],
+  "author": "",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/minhtaimc/edge-store-shipping-methods-dsl.git"
+  },
+  "bugs": {
+    "url": "https://github.com/minhtaimc/edge-store-shipping-methods-dsl/issues"
+  },
+  "homepage": "https://github.com/minhtaimc/edge-store-shipping-methods-dsl#readme",
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "arktype": "^2.1.25"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
