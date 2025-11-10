@@ -1,5 +1,5 @@
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
+  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@2/schema/shipping-methods.v2.schema.json",
   "version": "1.0",
   "currency": "USD",
   "methods": [

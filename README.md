@@ -141,7 +141,7 @@ Define your shipping configuration (JSON or TypeScript):
 
 ```json
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
+  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@2/schema/shipping-methods.v2.schema.json",
   "version": "1.0",
   "currency": "USD",
   "methods": [
@@ -572,7 +572,7 @@ Use the JSON Schema for IDE autocomplete and validation:
 
 ```json
 {
-  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json"
+  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@2/schema/shipping-methods.v2.schema.json"
 }
 ```
 
@@ -1255,6 +1255,7 @@ Current version: **2.0.0**
 - `nextTier` field with complete next tier information (id, label, price, estimatedDays)
 - `availabilityMode` field to control UI rendering ("hide" | "show_disabled" | "show_hint")
 - Kept method-level `availability` for non-tiered pricing (flat, item_based, value_based)
+- **JSON Schema v2**: Added `availability` field to `Rule` type for tier-level availability configuration
 
 **Improvements:**
 - Simplified API to 2 core functions: `getShippingMethodsForDisplay` (FE) and `getShippingMethodById` (BE)

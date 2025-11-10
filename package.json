@@ -11,7 +11,9 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./schema": "./schema/shipping-methods.v1.schema.json",
+    "./schema": "./schema/shipping-methods.v2.schema.json",
+    "./schema/v1": "./schema/shipping-methods.v1.schema.json",
+    "./schema/v2": "./schema/shipping-methods.v2.schema.json",
     "./package.json": "./package.json"
   },
   "sideEffects": false,

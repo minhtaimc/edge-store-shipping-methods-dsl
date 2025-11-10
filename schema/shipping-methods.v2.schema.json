@@ -1,0 +1,244 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@2/schema/shipping-methods.v2.schema.json",
+  "title": "Shipping Methods v2.0",
+  "type": "object",
+  "required": ["version", "methods"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string", "format": "uri" },
+    "version": { "type": "string", "const": "1.0" },
+    "currency": { "type": "string", "minLength": 3, "maxLength": 3 },
+    "methods": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/ShippingMethod" }
+    }
+  },
+
+  "$defs": {
+    "LocalizedString": {
+      "oneOf": [
+        { "type": "string", "minLength": 1 },
+        {
+          "type": "object",
+          "minProperties": 1,
+          "patternProperties": {
+            "^[a-z]{2}(-[A-Z]{2})?$": { "type": "string", "minLength": 1 }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+
+    "RangeNumber": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "min": { "type": "number" },
+        "max": { "type": "number" }
+      }
+    },
+
+    "EstimatedDays": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["min", "max"],
+      "properties": {
+        "min": { "type": "integer", "minimum": 0 },
+        "max": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "GeoCountry": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "include": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "uniqueItems": true
+        },
+        "exclude": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[A-Z]{2}$" },
+          "uniqueItems": true
+        }
+      }
+    },
+
+    "OrderConditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "value": { "$ref": "#/$defs/RangeNumber" },
+        "items": { "$ref": "#/$defs/RangeNumber" },
+        "weight": { "$ref": "#/$defs/RangeNumber" }
+      }
+    },
+
+    "Conditions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "geo": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "country": { "$ref": "#/$defs/GeoCountry" }
+          }
+        },
+        "order": { "$ref": "#/$defs/OrderConditions" }
+      }
+    },
+
+    "Availability": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "mode": { "type": "string", "enum": ["hide", "show_disabled", "show_hint"] },
+        "when": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "order.value.min",
+              "order.items.min",
+              "order.weight.min"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "message": { "$ref": "#/$defs/LocalizedString" },
+        "showProgress": { "type": "boolean" }
+      }
+    },
+
+    "Rule": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "criteria", "price"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "label": { "$ref": "#/$defs/LocalizedString" },
+        "criteria": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "order": { "$ref": "#/$defs/OrderConditions" },
+            "geo": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "country": { "$ref": "#/$defs/GeoCountry" }
+              }
+            }
+          }
+        },
+        "price": { "type": "number", "minimum": 0 },
+        "estimatedDays": { "$ref": "#/$defs/EstimatedDays" },
+        "promoText": { "$ref": "#/$defs/LocalizedString" },
+        "upgradeMessage": { "$ref": "#/$defs/LocalizedString" },
+        "availability": { "$ref": "#/$defs/Availability" }
+      }
+    },
+
+    "PricingFlat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "amount"],
+      "properties": {
+        "type": { "const": "flat" },
+        "amount": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "PricingItemBased": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "firstItemPrice", "additionalItemPrice"],
+      "properties": {
+        "type": { "const": "item_based" },
+        "firstItemPrice": { "type": "number", "minimum": 0 },
+        "additionalItemPrice": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "PricingValueBased": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "percentage"],
+      "properties": {
+        "type": { "const": "value_based" },
+        "percentage": { "type": "number", "exclusiveMinimum": 0 },
+        "minAmount": { "type": "number", "minimum": 0 },
+        "maxAmount": { "type": "number", "minimum": 0 }
+      }
+    },
+
+    "PricingTiered": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "rules"],
+      "properties": {
+        "type": { "const": "tiered" },
+        "rules": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/Rule" }
+        }
+      }
+    },
+
+    "PricingCustom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type", "plugin", "config"],
+      "properties": {
+        "type": { "const": "custom" },
+        "plugin": { "type": "string", "minLength": 1 },
+        "config": { "type": "object" }
+      }
+    },
+
+    "Pricing": {
+      "oneOf": [
+        { "$ref": "#/$defs/PricingFlat" },
+        { "$ref": "#/$defs/PricingItemBased" },
+        { "$ref": "#/$defs/PricingValueBased" },
+        { "$ref": "#/$defs/PricingTiered" },
+        { "$ref": "#/$defs/PricingCustom" }
+      ]
+    },
+
+    "Display": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "badge": { "type": "string" },
+        "priority": { "type": "integer" },
+        "hint": { "$ref": "#/$defs/LocalizedString" },
+        "promoText": { "$ref": "#/$defs/LocalizedString" }
+      }
+    },
+
+    "ShippingMethod": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "enabled", "name", "pricing"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "enabled": { "type": "boolean" },
+        "name": { "$ref": "#/$defs/LocalizedString" },
+        "description": { "$ref": "#/$defs/LocalizedString" },
+        "icon": { "type": "string" },
+        "display": { "$ref": "#/$defs/Display" },
+        "conditions": { "$ref": "#/$defs/Conditions" },
+        "pricing": { "$ref": "#/$defs/Pricing" },
+        "availability": { "$ref": "#/$defs/Availability" },
+        "estimatedDays": { "$ref": "#/$defs/EstimatedDays" },
+        "meta": { "type": "object" }
+      }
+    }
+  }
+}
