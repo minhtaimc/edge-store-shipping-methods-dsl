@@ -1229,11 +1229,11 @@ import type {
 
 ## Version
 
-Current version: **1.4.0**
+Current version: **2.0.0**
 
 ### Changelog
 
-**v1.4.0** - Major refactor with breaking changes
+**v2.0.0** - Major refactor with breaking changes
 
 **Breaking Changes:**
 - **BREAKING**: Moved `availability` from method-level to tier-level for tiered pricing
