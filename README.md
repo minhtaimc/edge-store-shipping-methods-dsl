@@ -287,86 +287,118 @@ All user-facing strings support localization:
 
 ## API Reference
 
-### Result Types
+### Core API (User-Centric Design)
 
-#### `ShippingCalculationResult`
-Returned by `getAvailableShippingMethods()` and `calculateAllShippingMethods()`.
+The package provides a minimal, focused API designed around actual use cases:
 
-```typescript
-interface ShippingCalculationResult {
-  id: string;           // Full ID - use this for backend validation
-  methodId: string;     // Base method ID
-  tierId?: string;      // Tier ID if tiered pricing
-  price: number;
-  available: boolean;
-  // ... other fields
-}
-```
+**Frontend (Checkout UI):**
+- `getShippingMethodsForDisplay()` - Get all methods with complete display information
 
-**Field usage:**
-- **`id`**: Full identifier ready to send to backend. For tiered: `"method_id:tier_id"`, non-tiered: `"method_id"`
-- **`methodId`**: Base method ID from config
-- **`tierId`**: Only populated for tiered pricing, indicates which tier matched
+**Backend (Order Validation):**
+- `getShippingMethodById()` - Validate selection and get pricing
 
-**Example values:**
-```typescript
-// Tiered pricing result
-{
-  id: "shipping.us.free:tier_express",
-  methodId: "shipping.us.free",
-  tierId: "tier_express",
-  price: 0
-}
+**Configuration:**
+- `validateShippingConfig()` - Validate shipping configuration
 
-// Non-tiered pricing result
-{
-  id: "shipping.us.standard",
-  methodId: "shipping.us.standard",
-  tierId: undefined,
-  price: 4.97
-}
-```
-
-#### `ShippingMethodDetail`
-Returned by `getShippingMethodById()` and `getTieredMethodOptions()`.
-
-Similar structure to `ShippingCalculationResult` but includes additional display fields like `name`, `description`, `enabled`, etc.
+**Custom Pricing:**
+- `registerPricingPlugin()` - Register custom pricing logic
 
 ### Main Functions
 
 #### `validateShippingConfig(data: unknown): ShippingConfig`
-Validates and returns a shipping configuration. Throws if invalid.
 
-#### `calculateAllShippingMethods(config, context): ShippingCalculationResult[]`
-Calculates all shipping methods (available and unavailable).
+Validates a shipping configuration against the schema. Throws error if invalid.
 
-#### `getAvailableShippingMethods(config, context): ShippingCalculationResult[]`
-Returns only available shipping methods. **Use `result.id` to send to backend.**
+```typescript
+import { validateShippingConfig } from "shipping-methods-dsl";
 
-#### `getCheapestShippingMethod(config, context): ShippingCalculationResult | undefined`
-Returns the cheapest available method.
+const config = validateShippingConfig(configJson);
+```
 
-#### `getShippingMethodsForDisplay(config, context)`
-Returns methods suitable for UI display, including disabled methods with unlock hints.
+#### `getShippingMethodsForDisplay(config, context): ShippingMethodDetail[]`
+
+**Use case:** Frontend checkout page - get all shipping methods with complete display information.
+
+Returns all shipping methods with full display details including:
+- Current tier information (name, price, estimatedDays, icon, badge)
+- Availability status and display mode
+- Upgrade hints with progress tracking
+- Next tier information (for tiered pricing)
+
+```typescript
+import { getShippingMethodsForDisplay } from "shipping-methods-dsl";
+
+const methods = getShippingMethodsForDisplay(config, {
+  orderValue: 75,
+  itemCount: 2,
+  country: "US",
+  locale: "en",
+});
+
+// Display in UI
+methods.forEach(method => {
+  if (method.available) {
+    // Show as selectable option
+    console.log(`${method.name} - $${method.price}`);
+  }
+
+  // Show upgrade hint
+  if (method.nextTier && method.progress) {
+    console.log(`${method.upgradeMessage}`);
+    console.log(`Next: ${method.nextTier.label} - $${method.nextTier.price}`);
+  }
+});
+```
+
+**Frontend can filter/sort as needed:**
+```typescript
+// Get only available methods
+const available = methods.filter(m => m.available);
+
+// Get cheapest method
+const cheapest = available.sort((a, b) => a.price - b.price)[0];
+
+// Filter by availabilityMode
+const hints = methods.filter(m => m.availabilityMode === "show_hint");
+```
 
 #### `getShippingMethodById(config, id, context): ShippingMethodDetail | undefined`
-Get detailed information for a specific shipping method by ID. Supports both simple IDs (`"shipping.express"`) and tiered IDs (`"shipping.express:tier_premium"`).
 
-**Primary use case**: Backend validation when receiving shipping method ID from frontend during checkout.
+**Use case:** Backend order validation - validate shipping method ID from frontend and get pricing.
 
-#### `getTieredMethodOptions(config, methodId, context): ShippingMethodDetail[]`
-Get all tier options for a tiered pricing method. Each tier is returned with its own ID in the format `"method_id:tier_id"`.
+Supports both simple IDs (`"shipping.express"`) and tiered IDs (`"shipping.express:tier_premium"`).
 
-### Custom Plugins
+```typescript
+import { getShippingMethodById } from "shipping-methods-dsl";
 
-Register custom pricing logic:
+// Frontend sends: { shippingMethodId: "shipping.us.standard:tier_free" }
+
+// Backend validates
+const method = getShippingMethodById(config, shippingMethodId, {
+  orderValue: cart.total,
+  itemCount: cart.items.length,
+  country: user.country,
+});
+
+if (!method || !method.available) {
+  throw new Error("Invalid shipping method");
+}
+
+// Use validated price for final calculation
+const total = cart.total + method.price;
+```
+
+#### `registerPricingPlugin(name, handler)`
+
+Register custom pricing logic for advanced use cases.
 
 ```typescript
 import { registerPricingPlugin } from "shipping-methods-dsl";
 
-registerPricingPlugin("my_plugin", (config, context) => {
-  // Your custom pricing logic
-  return calculatedPrice;
+registerPricingPlugin("weight_based", (config, context) => {
+  const ratePerKg = config.ratePerKg as number;
+  const weight = context.weight || 0;
+  return weight * ratePerKg;
 });
 ```
 
@@ -1176,7 +1208,7 @@ If no methods are returned:
 1. **Check geo conditions**: Does the user's country match `include` list?
 2. **Check order conditions**: Does order value/items/weight meet requirements?
 3. **Check enabled flag**: Are methods enabled in config?
-4. **Use calculateAllShippingMethods**: See all methods with their availability status
+4. **Use getShippingMethodsForDisplay**: See all methods with their availability status
 
 ### Tiered Pricing Not Working
 
@@ -1205,15 +1237,29 @@ Current version: **1.4.0**
 
 ### Changelog
 
-**v1.4.0**
+**v1.4.0** - Major refactor with breaking changes
+
+**Breaking Changes:**
 - **BREAKING**: Moved `availability` from method-level to tier-level for tiered pricing
+- **BREAKING**: Removed functions: `calculateShippingMethod`, `calculateAllShippingMethods`, `getAvailableShippingMethods`, `getCheapestShippingMethod`, `getTieredMethodOptions`
+- **BREAKING**: Removed exports: `getPricingPlugin`, `calculatePrice`, `evaluateConditions`, `calculateRemaining`, `getMinimumRequired`
+
+**New Features:**
+- Added `nextTier` field with complete next tier information (id, label, price, estimatedDays)
+- Added `availabilityMode` field to results ("hide" | "show_disabled" | "show_hint")
+- Added `enabled` and `meta` fields to `getShippingMethodsForDisplay` results
 - Kept method-level `availability` for non-tiered pricing (flat, item_based, value_based)
-- Added `availabilityMode` field to `ShippingCalculationResult` ("hide" | "show_disabled" | "show_hint")
+
+**Improvements:**
+- Simplified API to 2 core functions: `getShippingMethodsForDisplay` (FE) and `getShippingMethodById` (BE)
+- User-centric design: frontend gets everything needed, backend validates selections
 - Tier-level availability enables better upgrade hints and progress tracking
 - Simplified availability logic: `conditions` = hard requirements, `availability` = upgrade hints
+
+**Testing & Documentation:**
 - Added vitest v4.0.8 for testing with comprehensive test suite
 - Added MIGRATION-v1.4.0.md with detailed upgrade guide
-- Updated examples and documentation
+- Completely rewrote README with use-case-driven examples
 
 **v1.3.0**
 - Added `id` field to `ShippingCalculationResult` for easier frontend-backend integration

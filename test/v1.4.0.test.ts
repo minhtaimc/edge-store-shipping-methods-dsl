@@ -8,11 +8,17 @@
 import { describe, it, expect } from "vitest";
 import {
   validateShippingConfig,
-  calculateShippingMethod,
   getShippingMethodsForDisplay,
   type ShippingConfig,
   type EvaluationContext,
 } from "../src/index";
+
+// Helper to test individual shipping methods
+function calculateShippingMethod(method: any, context: EvaluationContext) {
+  const tempConfig = { version: "1.0", methods: [method] };
+  const results = getShippingMethodsForDisplay(tempConfig as any, context);
+  return results[0];
+}
 
 // Test configuration with tier-level availability
 const testConfig: ShippingConfig = {

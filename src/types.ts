@@ -94,69 +94,82 @@ export interface EvaluationContext {
   locale?: string;
 }
 
-// Result of calculating shipping price
-export interface ShippingCalculationResult {
-  id: string; // Full ID: for tiered "method_id:tier_id", otherwise just "method_id"
-  methodId: string; // Base method ID
-  tierId?: string; // Tier ID if tiered pricing was used
-  price: number;
-  available: boolean; // Can be selected (user can choose this method)
-  availabilityMode?: "hide" | "show_disabled" | "show_hint"; // Display mode for unavailable methods or upgrade hints
-  message?: string; // Unavailability or informational message
-  estimatedDays?: EstimatedDays;
-  promoText?: string; // Promotional text when tier is unlocked
-  upgradeMessage?: string; // Message about how to upgrade to better tier
-  progress?: {
-    // Progress towards unlocking next tier
-    current: number;
-    required: number;
-    remaining: number;
-    percentage: number;
-  };
-  nextTier?: {
-    // Information about the next better tier (for upgrade hints)
-    id: string; // Tier ID
-    label?: string; // Localized tier label
-    price: number;
-    estimatedDays?: EstimatedDays;
-  };
-}
-
 // Custom plugin interface for extensibility
 export type CustomPricingPlugin = (
   config: Record<string, unknown>,
   context: EvaluationContext
 ) => number;
 
-// Detailed shipping method information (evaluated result)
-export interface ShippingMethodDetail {
-  id: string; // For tiered: "method_id:tier_id", otherwise just "method_id"
-  methodId: string; // Original method ID
-  tierId?: string; // Tier rule ID if applicable
-  name: string; // Localized name
-  description?: string; // Localized description
+// ============================================
+// FRONTEND TYPES - For UI display
+// ============================================
+
+export interface DisplayShippingMethod {
+  // Identity
+  id: string; // Full ID to send to backend: "method_id:tier_id" or "method_id"
+  methodId: string;
+  tierId?: string;
+
+  // Display Information
+  name: string; // Localized
+  description?: string; // Localized
   icon?: string;
   badge?: string;
-  price: number; // Calculated price for current context
-  available: boolean; // Whether this method is available (conditions met)
-  enabled: boolean; // Whether method is enabled in config
+
+  // Pricing & Availability
+  price: number;
+  available: boolean;
+  enabled: boolean;
   estimatedDays?: EstimatedDays;
-  message?: string; // Unavailability message or hint
-  promoText?: string; // Localized promo text
-  upgradeMessage?: string; // Localized upgrade message
+
+  // Availability Mode (how to display in UI)
+  availabilityMode?: "hide" | "show_disabled" | "show_hint";
+  message?: string;
+  promoText?: string; // Localized
+  upgradeMessage?: string; // Localized
+
+  // Progress Tracking
   progress?: {
     current: number;
     required: number;
     remaining: number;
     percentage: number;
   };
+
+  // Next Tier Information (for upgrade hints)
   nextTier?: {
-    // Information about the next better tier (for upgrade hints)
-    id: string; // Tier ID
-    label?: string; // Localized tier label
+    id: string;
+    label?: string; // Localized
     price: number;
     estimatedDays?: EstimatedDays;
   };
-  availabilityMode?: "hide" | "show_disabled" | "show_hint";
+
+  // Custom Metadata
+  meta?: Record<string, unknown>;
+}
+
+// ============================================
+// BACKEND TYPES - For order validation
+// ============================================
+
+export interface ValidatedShippingMethod {
+  // Identity
+  id: string; // Full ID that was validated
+  methodId: string;
+  tierId?: string;
+
+  // Validation Result
+  available: boolean;
+  enabled: boolean;
+
+  // Pricing (what matters for checkout)
+  price: number;
+  estimatedDays?: EstimatedDays;
+
+  // Display info (for order confirmation)
+  name: string; // Localized
+  description?: string; // Localized
+
+  // Custom Metadata
   meta?: Record<string, unknown>;
 }

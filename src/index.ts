@@ -1,5 +1,8 @@
-// Type exports from types.ts
+// ============================================
+// TYPE EXPORTS
+// ============================================
 export type {
+  // Configuration types
   LocalizedString,
   RangeNumber,
   EstimatedDays,
@@ -13,39 +16,34 @@ export type {
   ShippingMethod,
   ShippingConfig,
   EvaluationContext,
-  ShippingCalculationResult,
   CustomPricingPlugin,
-  ShippingMethodDetail,
+  // Frontend types
+  DisplayShippingMethod,
+  // Backend types
+  ValidatedShippingMethod,
 } from "./types.js";
 
-// Validator exports
+// ============================================
+// CONFIGURATION API
+// ============================================
 export { validateShippingConfig } from "./validator.js";
 
-// Pricing exports
-export {
-  registerPricingPlugin,
-  getPricingPlugin,
-  calculatePrice,
-  weightBasedPlugin,
-} from "./pricing.js";
+// ============================================
+// FRONTEND API - For checkout UI
+// ============================================
+export { getShippingMethodsForDisplay } from "./frontend.js";
 
-// Conditions exports
-export {
-  evaluateConditions,
-  calculateRemaining,
-  getMinimumRequired,
-} from "./conditions.js";
+// ============================================
+// BACKEND API - For order validation
+// ============================================
+export { getShippingMethodById } from "./backend.js";
 
-// Engine exports
-export {
-  calculateShippingMethod,
-  calculateAllShippingMethods,
-  getAvailableShippingMethods,
-  getCheapestShippingMethod,
-  getShippingMethodsForDisplay,
-  getShippingMethodById,
-  getTieredMethodOptions,
-} from "./engine.js";
+// ============================================
+// CUSTOM PRICING PLUGINS
+// ============================================
+export { registerPricingPlugin, weightBasedPlugin } from "./pricing.js";
 
-// Version
-export const VERSION = "1.3.0";
+// ============================================
+// VERSION
+// ============================================
+export const VERSION = "1.4.0";
