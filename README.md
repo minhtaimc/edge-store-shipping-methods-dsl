@@ -1229,9 +1229,16 @@ import type {
 
 ## Version
 
-Current version: **2.0.0**
+Current version: **2.0.1**
 
 ### Changelog
+
+**v2.0.1** - Patch release with schema v2
+
+**Changes:**
+- Added JSON Schema v2 with `availability` field in `Rule` type for tier-level availability
+- Updated package exports to include both v1 and v2 schemas (default to v2)
+- Schema v2 is backward compatible with v1 (availability is optional)
 
 **v2.0.0** - Major refactor with breaking changes
 
