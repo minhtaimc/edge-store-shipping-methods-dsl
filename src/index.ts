@@ -15,6 +15,7 @@ export type {
   EvaluationContext,
   ShippingCalculationResult,
   CustomPricingPlugin,
+  ShippingMethodDetail,
 } from "./types.js";
 
 // Validator exports
@@ -42,7 +43,9 @@ export {
   getAvailableShippingMethods,
   getCheapestShippingMethod,
   getShippingMethodsForDisplay,
+  getShippingMethodById,
+  getTieredMethodOptions,
 } from "./engine.js";
 
 // Version
-export const VERSION = "1.0.0";
+export const VERSION = "1.1.0";

@@ -244,6 +244,14 @@ Returns the cheapest available method.
 #### `getShippingMethodsForDisplay(config, context)`
 Returns methods suitable for UI display, including disabled methods with unlock hints.
 
+#### `getShippingMethodById(config, id, context): ShippingMethodDetail | undefined`
+Get detailed information for a specific shipping method by ID. Supports both simple IDs (`"shipping.express"`) and tiered IDs (`"shipping.express:tier_premium"`). Returns calculated price, availability status, and localized information.
+
+**Primary use case**: Backend validation when receiving shipping method ID from frontend during checkout.
+
+#### `getTieredMethodOptions(config, methodId, context): ShippingMethodDetail[]`
+Get all tier options for a tiered pricing method. Each tier is returned with its own ID in the format `"method_id:tier_id"`.
+
 ### Custom Plugins
 
 Register custom pricing logic:
@@ -259,31 +267,113 @@ registerPricingPlugin("my_plugin", (config, context) => {
 
 ## Usage Examples
 
-### Cloudflare Edge Worker
+### Backend: Validate Shipping Method from Frontend
+
+When your frontend sends a selected shipping method ID during checkout, use `getShippingMethodById` to validate and calculate the actual price:
 
 ```typescript
 import {
   type ShippingConfig,
-  getAvailableShippingMethods,
+  getShippingMethodById,
+  validateShippingConfig,
 } from "shipping-methods-dsl";
+
+// Load your config (from KV, R2, or environment)
+const config = validateShippingConfig(configJson);
 
 export default {
   async fetch(request: Request): Promise<Response> {
     const body = await request.json();
-    const methods = getAvailableShippingMethods(config, {
-      orderValue: body.orderValue,
-      itemCount: body.itemCount,
-      country: body.country,
-      locale: body.locale || "en",
+    const { shippingMethodId, orderValue, itemCount, country } = body;
+
+    // Create context from order data
+    const context = {
+      orderValue,
+      itemCount,
+      country,
+      locale: request.headers.get("Accept-Language") || "en",
+    };
+
+    // Validate the shipping method ID from frontend
+    const shippingMethod = getShippingMethodById(config, shippingMethodId, context);
+
+    if (!shippingMethod) {
+      return Response.json({ error: "Invalid shipping method" }, { status: 400 });
+    }
+
+    if (!shippingMethod.available) {
+      return Response.json({
+        error: "Shipping method not available",
+        message: shippingMethod.message
+      }, { status: 400 });
+    }
+
+    // Use the validated shipping price
+    const shippingCost = shippingMethod.price;
+    const total = orderValue + shippingCost;
+
+    return Response.json({
+      shippingCost,
+      shippingMethod: {
+        id: shippingMethod.id,
+        name: shippingMethod.name,
+        estimatedDays: shippingMethod.estimatedDays,
+      },
+      total,
     });
-    return Response.json(methods);
   }
 };
 ```
 
+### Frontend: Get Available Methods
+
+```typescript
+import { getAvailableShippingMethods } from "shipping-methods-dsl";
+
+// Frontend gets available methods and displays to user
+const methods = getAvailableShippingMethods(config, {
+  orderValue: cart.total,
+  itemCount: cart.items.length,
+  country: user.country,
+  locale: "en",
+});
+
+// User selects a method, send ID to backend
+const selectedId = "shipping.express:tier_premium";
+await fetch("/api/checkout", {
+  method: "POST",
+  body: JSON.stringify({
+    shippingMethodId: selectedId,
+    orderValue: cart.total,
+    itemCount: cart.items.length,
+    country: user.country,
+  }),
+});
+```
+
+### Working with Tiered Pricing
+
+```typescript
+import { getTieredMethodOptions, getShippingMethodById } from "shipping-methods-dsl";
+
+// Get all tier options for a tiered method
+const tiers = getTieredMethodOptions(config, "shipping.express", context);
+// Returns:
+// [
+//   { id: "shipping.express:standard", price: 8.99, available: true, ... },
+//   { id: "shipping.express:premium", price: 12.99, available: true, ... }
+// ]
+
+// Validate a specific tier selection
+const selected = getShippingMethodById(config, "shipping.express:premium", context);
+if (selected?.available) {
+  console.log(`${selected.name}: $${selected.price}`);
+}
+```
+
 See [examples/](./examples/) for more detailed examples including:
 - Full Cloudflare Worker implementation
-- Minimal Worker example
+- Backend validation example
 - React frontend component
 - Custom plugin usage
 

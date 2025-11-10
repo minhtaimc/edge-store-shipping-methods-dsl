@@ -5,6 +5,7 @@ import type {
   ShippingCalculationResult,
   LocalizedString,
   Rule,
+  ShippingMethodDetail,
 } from "./types.js";
 import { evaluateConditions, calculateRemaining, getMinimumRequired } from "./conditions.js";
 import { calculatePrice } from "./pricing.js";
@@ -281,4 +282,116 @@ export function getShippingMethodsForDisplay(
       };
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
+}
+
+/**
+ * Get detailed information for a specific shipping method by ID
+ * Supports both simple IDs and tiered IDs (format: "method_id:tier_id")
+ */
+export function getShippingMethodById(
+  config: ShippingConfig,
+  id: string,
+  context: EvaluationContext
+): ShippingMethodDetail | undefined {
+  const locale = context.locale;
+
+  // Parse ID - check if it's a tiered ID
+  const parts = id.split(":");
+  const methodId = parts[0];
+  const tierId = parts.length > 1 ? parts[1] : undefined;
+
+  // Find the method
+  const method = config.methods.find((m) => m.id === methodId);
+  if (!method) {
+    return undefined;
+  }
+
+  // For tiered pricing with tier ID
+  if (tierId && method.pricing.type === "tiered") {
+    const tier = method.pricing.rules.find((r) => r.id === tierId);
+    if (!tier) {
+      return undefined;
+    }
+
+    // Check if this tier is valid for the current context
+    const tierValid = evaluateTieredRule(tier, context);
+
+    return {
+      id: `${methodId}:${tierId}`,
+      methodId,
+      tierId,
+      name: resolveLocalizedString(tier.label || method.name, locale) ?? "",
+      description: resolveLocalizedString(method.description, locale),
+      icon: method.icon,
+      badge: method.display?.badge,
+      price: tier.price,
+      available: method.enabled && tierValid,
+      enabled: method.enabled,
+      estimatedDays: tier.estimatedDays,
+      message: tierValid ? undefined : "Tier criteria not met",
+      promoText: resolveLocalizedString(tier.promoText, locale),
+      upgradeMessage: resolveLocalizedString(tier.upgradeMessage, locale),
+      meta: method.meta,
+    };
+  }
+
+  // For non-tiered or when no tier ID specified
+  const result = calculateShippingMethod(method, context);
+
+  return {
+    id: methodId,
+    methodId,
+    name: resolveLocalizedString(method.name, locale) ?? "",
+    description: resolveLocalizedString(method.description, locale),
+    icon: method.icon,
+    badge: method.display?.badge,
+    price: result.price,
+    available: result.available,
+    enabled: method.enabled,
+    estimatedDays: result.estimatedDays,
+    message: result.message,
+    promoText: result.promoText,
+    upgradeMessage: result.upgradeMessage,
+    progress: result.progress,
+    meta: method.meta,
+  };
+}
+
+/**
+ * Get all available tiers for a tiered shipping method
+ * Returns array of detailed tier information
+ */
+export function getTieredMethodOptions(
+  config: ShippingConfig,
+  methodId: string,
+  context: EvaluationContext
+): ShippingMethodDetail[] {
+  const method = config.methods.find((m) => m.id === methodId);
+  if (!method || method.pricing.type !== "tiered") {
+    return [];
+  }
+
+  const locale = context.locale;
+
+  return method.pricing.rules.map((tier) => {
+    const tierValid = evaluateTieredRule(tier, context);
+
+    return {
+      id: `${methodId}:${tier.id}`,
+      methodId,
+      tierId: tier.id,
+      name: resolveLocalizedString(tier.label || method.name, locale) ?? "",
+      description: resolveLocalizedString(method.description, locale),
+      icon: method.icon,
+      badge: method.display?.badge,
+      price: tier.price,
+      available: method.enabled && tierValid,
+      enabled: method.enabled,
+      estimatedDays: tier.estimatedDays,
+      message: tierValid ? undefined : "Tier criteria not met",
+      promoText: resolveLocalizedString(tier.promoText, locale),
+      upgradeMessage: resolveLocalizedString(tier.upgradeMessage, locale),
+      meta: method.meta,
+    };
+  });
 }

@@ -114,3 +114,28 @@ export type CustomPricingPlugin = (
   config: Record<string, unknown>,
   context: EvaluationContext
 ) => number;
+
+// Detailed shipping method information (evaluated result)
+export interface ShippingMethodDetail {
+  id: string; // For tiered: "method_id:tier_id", otherwise just "method_id"
+  methodId: string; // Original method ID
+  tierId?: string; // Tier rule ID if applicable
+  name: string; // Localized name
+  description?: string; // Localized description
+  icon?: string;
+  badge?: string;
+  price: number; // Calculated price for current context
+  available: boolean; // Whether this method is available (conditions met)
+  enabled: boolean; // Whether method is enabled in config
+  estimatedDays?: EstimatedDays;
+  message?: string; // Unavailability message or hint
+  promoText?: string; // Localized promo text
+  upgradeMessage?: string; // Localized upgrade message
+  progress?: {
+    current: number;
+    required: number;
+    remaining: number;
+    percentage: number;
+  };
+  meta?: Record<string, unknown>;
+}
