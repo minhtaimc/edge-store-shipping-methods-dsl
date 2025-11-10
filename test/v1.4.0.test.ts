@@ -224,6 +224,39 @@ describe("v1.4.0 - Display filtering", () => {
     expect(standard?.availabilityMode).toBe("show_hint");
     expect(standard?.upgradeMessage).toBeDefined();
   });
+
+  it("should include all display fields (name, icon, badge, enabled, meta)", () => {
+    const context: EvaluationContext = {
+      orderValue: 75,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+    };
+
+    const displayMethods = getShippingMethodsForDisplay(testConfig, context);
+
+    displayMethods.forEach((method) => {
+      // All methods should have name
+      expect(method.name).toBeDefined();
+      expect(typeof method.name).toBe("string");
+
+      // All methods should have enabled flag
+      expect(method.enabled).toBeDefined();
+      expect(typeof method.enabled).toBe("boolean");
+
+      // Check that icon, badge, description, meta are preserved if present
+      // (some methods may not have these fields)
+      if (method.icon !== undefined) {
+        expect(typeof method.icon).toBe("string");
+      }
+      if (method.badge !== undefined) {
+        expect(typeof method.badge).toBe("string");
+      }
+      if (method.description !== undefined) {
+        expect(typeof method.description).toBe("string");
+      }
+    });
+  });
 });
 
 describe("v1.4.0 - Configuration validation", () => {

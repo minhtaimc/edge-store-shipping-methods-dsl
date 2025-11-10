@@ -333,14 +333,7 @@ export function getCheapestShippingMethod(
 export function getShippingMethodsForDisplay(
   config: ShippingConfig,
   context: EvaluationContext
-): Array<
-  ShippingCalculationResult & {
-    name: string;
-    description?: string;
-    icon?: string;
-    badge?: string;
-  }
-> {
+): ShippingMethodDetail[] {
   const results = calculateAllShippingMethods(config, context);
 
   return results
@@ -348,13 +341,17 @@ export function getShippingMethodsForDisplay(
       const method = config.methods.find((m) => m.id === result.methodId);
       if (!method) return null;
 
-      return {
+      const detail: ShippingMethodDetail = {
         ...result,
         name: resolveLocalizedString(method.name, context.locale) ?? "",
         description: resolveLocalizedString(method.description, context.locale),
         icon: method.icon,
         badge: method.display?.badge,
+        enabled: method.enabled,
+        meta: method.meta,
       };
+
+      return detail;
     })
     .filter((item): item is NonNullable<typeof item> => item !== null);
 }
