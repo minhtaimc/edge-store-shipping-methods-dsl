@@ -1232,9 +1232,16 @@ import type {
 
 ## Version
 
-Current version: **2.0.1**
+Current version: **2.0.2**
 
 ### Changelog
+
+**v2.0.2** - Patch release with display filtering
+
+**Changes:**
+- `getShippingMethodsForDisplay()` now filters out methods with `availabilityMode: "hide"`
+- Only visible methods (available, show_disabled, show_hint) are returned
+- Updated tests and documentation to reflect filtering behavior
 
 **v2.0.1** - Patch release with schema v2
 
