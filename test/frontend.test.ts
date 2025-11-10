@@ -1,8 +1,13 @@
 /**
- * Test suite for v1.4.0 features
- * - Tier-level availability
- * - Method-level availability for non-tiered
- * - availabilityMode field in results
+ * Frontend API Tests
+ * Tests for getShippingMethodsForDisplay() - checkout UI use case
+ *
+ * Features tested:
+ * - DisplayShippingMethod type with complete UI information
+ * - Tier-level availability and upgrade hints
+ * - Method-level availability for non-tiered methods
+ * - Progress tracking and next tier information
+ * - availabilityMode field for UI rendering
  */
 
 import { describe, it, expect } from "vitest";

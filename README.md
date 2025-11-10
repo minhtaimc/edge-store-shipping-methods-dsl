@@ -19,6 +19,25 @@ A powerful, type-safe DSL (Domain Specific Language) for defining and evaluating
 - **Progressive unlock**: Show disabled methods with unlock hints and progress bars
 - **Zero dependencies**: Only requires ArkType for runtime validation
 
+## Architecture
+
+This package is designed with **tree-shaking** and **separation of concerns** in mind:
+
+```
+Frontend Bundle          Backend Bundle
+    ↓                        ↓
+frontend.ts              backend.ts
+    ↓                        ↓
+DisplayShippingMethod    ValidatedShippingMethod
+(Complete UI data)       (Minimal validation data)
+```
+
+**Benefits:**
+- **Tree-shaking**: Import only what you need - frontend code won't include backend validation logic and vice versa
+- **Smaller bundles**: Frontend gets display logic, backend gets validation logic
+- **Type safety**: Different types for different use cases
+- **Clear API**: Two functions (`getShippingMethodsForDisplay` for FE, `getShippingMethodById` for BE)
+
 ## Installation
 
 ```bash
@@ -27,7 +46,98 @@ npm install shipping-methods-dsl
 
 ## Quick Start
 
-### 1. Define your shipping configuration
+This package is designed with **separation of concerns** - different APIs for frontend and backend:
+
+### Frontend (Checkout UI)
+
+Get all shipping methods with complete display information for your checkout page.
+
+```typescript
+import {
+  validateShippingConfig,
+  getShippingMethodsForDisplay,
+  type DisplayShippingMethod,
+  type EvaluationContext,
+} from "shipping-methods-dsl";
+
+// 1. Load and validate config (do this once, cache it)
+const config = validateShippingConfig(configJson);
+
+// 2. Create context from current cart state
+const context: EvaluationContext = {
+  orderValue: cart.total,
+  itemCount: cart.items.length,
+  country: user.country,
+  locale: user.language,
+};
+
+// 3. Get all methods with complete UI information
+const methods: DisplayShippingMethod[] = getShippingMethodsForDisplay(config, context);
+
+// 4. Display in your UI
+methods.forEach(method => {
+  if (method.available) {
+    // Show as selectable option
+    console.log(`${method.name} - $${method.price}`);
+    if (method.badge) console.log(`Badge: ${method.badge}`);
+  }
+
+  // Show upgrade hint (progress bar, etc.)
+  if (method.nextTier && method.progress) {
+    console.log(`${method.upgradeMessage}`);
+    console.log(`Progress: ${method.progress.percentage}%`);
+    console.log(`Next: ${method.nextTier.label} - $${method.nextTier.price}`);
+  }
+});
+
+// Filter/sort as needed
+const available = methods.filter(m => m.available);
+const cheapest = available.sort((a, b) => a.price - b.price)[0];
+```
+
+### Backend (Order Validation)
+
+Validate shipping method selection from frontend during checkout.
+
+```typescript
+import {
+  validateShippingConfig,
+  getShippingMethodById,
+  type ValidatedShippingMethod,
+  type EvaluationContext,
+} from "shipping-methods-dsl";
+
+// 1. Load and validate config
+const config = validateShippingConfig(configJson);
+
+// 2. Frontend sends shipping method ID
+// POST /api/checkout
+// { shippingMethodId: "shipping.us.standard:tier_free", ... }
+
+// 3. Validate the selection
+const context: EvaluationContext = {
+  orderValue: cart.total,
+  itemCount: cart.items.length,
+  country: user.country,
+};
+
+const method: ValidatedShippingMethod | undefined =
+  getShippingMethodById(config, req.body.shippingMethodId, context);
+
+if (!method || !method.available) {
+  return res.status(400).json({ error: "Invalid shipping method" });
+}
+
+// 4. Use validated price for final total
+const total = cart.total + method.price;
+const estimatedDelivery = method.estimatedDays;
+
+// Process order...
+```
+
+### Configuration
+
+Define your shipping configuration (JSON or TypeScript):
 
 ```json
 {
@@ -46,31 +156,6 @@ npm install shipping-methods-dsl
     }
   ]
 }
-```
-
-### 2. Validate and use in your application
-
-```typescript
-import {
-  validateShippingConfig,
-  getAvailableShippingMethods,
-  type EvaluationContext,
-} from "shipping-methods-dsl";
-
-// Load and validate config
-const config = validateShippingConfig(configJson);
-
-// Create evaluation context from cart/order data
-const context: EvaluationContext = {
-  orderValue: 100.0,
-  itemCount: 3,
-  country: "US",
-  locale: "en",
-};
-
-// Get available shipping methods
-const methods = getAvailableShippingMethods(config, context);
-console.log(methods);
 ```
 
 ## Pricing Types
