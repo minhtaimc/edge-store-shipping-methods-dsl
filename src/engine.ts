@@ -91,6 +91,7 @@ export function calculateShippingMethod(
   // Check if method is enabled
   if (!method.enabled) {
     return {
+      id: method.id,
       methodId: method.id,
       price: 0,
       available: false,
@@ -125,6 +126,7 @@ export function calculateShippingMethod(
           );
 
           const result: ShippingCalculationResult = {
+            id: method.id,
             methodId: method.id,
             price: 0,
             available: false,
@@ -146,6 +148,7 @@ export function calculateShippingMethod(
       }
 
       return {
+        id: method.id,
         methodId: method.id,
         price: 0,
         available: false,
@@ -158,7 +161,9 @@ export function calculateShippingMethod(
 
     if (matchingRule) {
       return {
+        id: `${method.id}:${matchingRule.id}`,
         methodId: method.id,
+        tierId: matchingRule.id,
         price: matchingRule.price,
         available: true,
         estimatedDays: matchingRule.estimatedDays,
@@ -194,6 +199,7 @@ export function calculateShippingMethod(
           );
 
           const result: ShippingCalculationResult = {
+            id: method.id,
             methodId: method.id,
             price: 0,
             available: false,
@@ -217,6 +223,7 @@ export function calculateShippingMethod(
 
     // No matching rule and no availability hint
     return {
+      id: method.id,
       methodId: method.id,
       price: 0,
       available: false,
@@ -232,6 +239,7 @@ export function calculateShippingMethod(
 
       if (mode === "hide") {
         return {
+          id: method.id,
           methodId: method.id,
           price: 0,
           available: false,
@@ -256,6 +264,7 @@ export function calculateShippingMethod(
         );
 
         const result: ShippingCalculationResult = {
+          id: method.id,
           methodId: method.id,
           price: 0,
           available: false,
@@ -279,6 +288,7 @@ export function calculateShippingMethod(
 
     // Default: just return unavailable
     return {
+      id: method.id,
       methodId: method.id,
       price: 0,
       available: false,
@@ -290,6 +300,7 @@ export function calculateShippingMethod(
   const price = calculatePrice(method.pricing, context);
 
   return {
+    id: method.id,
     methodId: method.id,
     price,
     available: true,

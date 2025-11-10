@@ -95,7 +95,9 @@ export interface EvaluationContext {
 
 // Result of calculating shipping price
 export interface ShippingCalculationResult {
-  methodId: string;
+  id: string; // Full ID: for tiered "method_id:tier_id", otherwise just "method_id"
+  methodId: string; // Base method ID
+  tierId?: string; // Tier ID if tiered pricing was used
   price: number;
   available: boolean;
   message?: string;

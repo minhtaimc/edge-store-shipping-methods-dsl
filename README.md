@@ -233,10 +233,10 @@ All user-facing strings support localization:
 Validates and returns a shipping configuration. Throws if invalid.
 
 #### `calculateAllShippingMethods(config, context): ShippingCalculationResult[]`
-Calculates all shipping methods (available and unavailable).
+Calculates all shipping methods (available and unavailable). For tiered pricing methods, the result includes both `methodId` and `tierId` to identify the matched tier.
 
 #### `getAvailableShippingMethods(config, context): ShippingCalculationResult[]`
-Returns only available shipping methods.
+Returns only available shipping methods. For tiered pricing, includes `tierId` field to identify which tier was matched.
 
 #### `getCheapestShippingMethod(config, context): ShippingCalculationResult | undefined`
 Returns the cheapest available method.
@@ -338,12 +338,23 @@ const methods = getAvailableShippingMethods(config, {
   locale: "en",
 });
 
-// User selects a method, send ID to backend
-const selectedId = "shipping.express:tier_premium";
+// Display methods to user
+methods.forEach(method => {
+  console.log(`${method.id}: $${method.price}`);
+  // For tiered pricing: id is "method_id:tier_id"
+  // For non-tiered: id is just "method_id"
+  if (method.tierId) {
+    console.log(`  (Tiered: ${method.methodId}:${method.tierId})`);
+  }
+});
+
+// User selects a method - use the id directly (no need to construct)
+const selectedMethod = methods[0]; // User's selection
+
 await fetch("/api/checkout", {
   method: "POST",
   body: JSON.stringify({
-    shippingMethodId: selectedId,
+    shippingMethodId: selectedMethod.id, // Use id directly
     orderValue: cart.total,
     itemCount: cart.items.length,
     country: user.country,
