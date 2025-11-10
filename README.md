@@ -400,7 +400,7 @@ import { validateShippingConfig } from "shipping-methods-dsl";
 const config = validateShippingConfig(configJson);
 ```
 
-#### `getShippingMethodsForDisplay(config, context): ShippingMethodDetail[]`
+#### `getShippingMethodsForDisplay(config, context): DisplayShippingMethod[]`
 
 **Use case:** Frontend checkout page - get all shipping methods with complete display information.
 
@@ -447,7 +447,7 @@ const cheapest = available.sort((a, b) => a.price - b.price)[0];
 const hints = methods.filter(m => m.availabilityMode === "show_hint");
 ```
 
-#### `getShippingMethodById(config, id, context): ShippingMethodDetail | undefined`
+#### `getShippingMethodById(config, id, context): ValidatedShippingMethod | undefined`
 
 **Use case:** Backend order validation - validate shipping method ID from frontend and get pricing.
 
@@ -547,62 +547,6 @@ export default {
 };
 ```
 
-### Frontend: Get Available Methods
-
-```typescript
-import { getAvailableShippingMethods } from "shipping-methods-dsl";
-
-// Frontend gets available methods and displays to user
-const methods = getAvailableShippingMethods(config, {
-  orderValue: cart.total,
-  itemCount: cart.items.length,
-  country: user.country,
-  locale: "en",
-});
-
-// Display methods to user
-methods.forEach(method => {
-  console.log(`${method.id}: $${method.price}`);
-  // For tiered pricing: id is "method_id:tier_id"
-  // For non-tiered: id is just "method_id"
-  if (method.tierId) {
-    console.log(`  (Tiered: ${method.methodId}:${method.tierId})`);
-  }
-});
-
-// User selects a method - use the id directly (no need to construct)
-const selectedMethod = methods[0]; // User's selection
-
-await fetch("/api/checkout", {
-  method: "POST",
-  body: JSON.stringify({
-    shippingMethodId: selectedMethod.id, // Use id directly
-    orderValue: cart.total,
-    itemCount: cart.items.length,
-    country: user.country,
-  }),
-});
-```
-
-### Working with Tiered Pricing
-
-```typescript
-import { getTieredMethodOptions, getShippingMethodById } from "shipping-methods-dsl";
-
-// Get all tier options for a tiered method
-const tiers = getTieredMethodOptions(config, "shipping.express", context);
-// Returns:
-// [
-//   { id: "shipping.express:standard", price: 8.99, available: true, ... },
-//   { id: "shipping.express:premium", price: 12.99, available: true, ... }
-// ]
-
-// Validate a specific tier selection
-const selected = getShippingMethodById(config, "shipping.express:premium", context);
-if (selected?.available) {
-  console.log(`${selected.name}: $${selected.price}`);
-}
-```
 
 See [examples/](./examples/) for more detailed examples including:
 - Full Cloudflare Worker implementation
@@ -965,40 +909,75 @@ interface ShippingConfig {
   methods: ShippingMethod[];
 }
 
-// Calculation result
-interface ShippingCalculationResult {
+// ============================================
+// FRONTEND TYPE - For UI display
+// ============================================
+interface DisplayShippingMethod {
+  // Identity
   id: string;              // Full ID: "method_id" or "method_id:tier_id"
-  methodId: string;        // Base method ID
-  tierId?: string;         // Tier ID (for tiered pricing)
+  methodId: string;
+  tierId?: string;
+
+  // Display Information
+  name: string;            // Localized
+  description?: string;    // Localized
+  icon?: string;
+  badge?: string;
+
+  // Pricing & Availability
   price: number;
   available: boolean;
-  availabilityMode?: "hide" | "show_disabled" | "show_hint"; // How to display when not available/showing hints
-  message?: string;
+  enabled: boolean;
   estimatedDays?: EstimatedDays;
-  promoText?: string;
-  upgradeMessage?: string;
+
+  // Availability Mode (how to display in UI)
+  availabilityMode?: "hide" | "show_disabled" | "show_hint";
+  message?: string;
+  promoText?: string;      // Localized
+  upgradeMessage?: string; // Localized
+
+  // Progress Tracking
   progress?: {
     current: number;
     required: number;
     remaining: number;
     percentage: number;
   };
+
+  // Next Tier Information (for upgrade hints)
   nextTier?: {
-    // Information about the next better tier (for upgrade hints)
-    id: string;         // Tier ID
-    label?: string;     // Localized tier label
-    price: number;      // Price of next tier
-    estimatedDays?: EstimatedDays; // Delivery time of next tier
+    id: string;
+    label?: string;        // Localized
+    price: number;
+    estimatedDays?: EstimatedDays;
   };
+
+  // Custom Metadata
+  meta?: Record<string, unknown>;
 }
 
-// Detailed method information
-interface ShippingMethodDetail extends ShippingCalculationResult {
-  name: string;            // Localized name
-  description?: string;    // Localized description
-  icon?: string;
-  badge?: string;
+// ============================================
+// BACKEND TYPE - For order validation
+// ============================================
+interface ValidatedShippingMethod {
+  // Identity
+  id: string;              // Full ID that was validated
+  methodId: string;
+  tierId?: string;
+
+  // Validation Result
+  available: boolean;
   enabled: boolean;
+
+  // Pricing (what matters for checkout)
+  price: number;
+  estimatedDays?: EstimatedDays;
+
+  // Display info (for order confirmation)
+  name: string;            // Localized
+  description?: string;    // Localized
+
+  // Custom Metadata
   meta?: Record<string, unknown>;
 }
 
@@ -1029,83 +1008,6 @@ try {
 }
 ```
 
-### Calculation Functions
-
-```typescript
-function calculateShippingMethod(
-  method: ShippingMethod,
-  context: EvaluationContext
-): ShippingCalculationResult
-```
-
-Calculate a single shipping method for the given context.
-
-```typescript
-function calculateAllShippingMethods(
-  config: ShippingConfig,
-  context: EvaluationContext
-): ShippingCalculationResult[]
-```
-
-Calculate all shipping methods (both available and unavailable). Results are sorted by priority and price.
-
-```typescript
-function getAvailableShippingMethods(
-  config: ShippingConfig,
-  context: EvaluationContext
-): ShippingCalculationResult[]
-```
-
-Get only available shipping methods for the current context. **This is the main function to use in your frontend.**
-
-```typescript
-function getCheapestShippingMethod(
-  config: ShippingConfig,
-  context: EvaluationContext
-): ShippingCalculationResult | undefined
-```
-
-Get the cheapest available shipping method.
-
-```typescript
-function getShippingMethodsForDisplay(
-  config: ShippingConfig,
-  context: EvaluationContext
-): Array<ShippingCalculationResult & {
-  name: string;
-  description?: string;
-  icon?: string;
-  badge?: string;
-}>
-```
-
-Get shipping methods suitable for UI display. Includes disabled methods with unlock hints, but excludes hidden methods.
-
-### Method Lookup Functions
-
-```typescript
-function getShippingMethodById(
-  config: ShippingConfig,
-  id: string,
-  context: EvaluationContext
-): ShippingMethodDetail | undefined
-```
-
-Get detailed information for a specific shipping method by ID. **Use this in your backend to validate shipping method selection from frontend.**
-
-Supports both formats:
-- Simple: `"shipping.express"`
-- Tiered: `"shipping.express:tier_premium"`
-
-```typescript
-function getTieredMethodOptions(
-  config: ShippingConfig,
-  methodId: string,
-  context: EvaluationContext
-): ShippingMethodDetail[]
-```
-
-Get all tier options for a tiered pricing method. Returns an array of tiers, each with its own ID in the format `"method_id:tier_id"`.
 
 ### Plugin System
 
@@ -1307,12 +1209,21 @@ Common issues:
 
 Make sure you're importing types correctly:
 
+**Frontend:**
 ```typescript
 import type {
   ShippingConfig,
   EvaluationContext,
-  ShippingCalculationResult,
-  ShippingMethodDetail,
+  DisplayShippingMethod,
+} from "shipping-methods-dsl";
+```
+
+**Backend:**
+```typescript
+import type {
+  ShippingConfig,
+  EvaluationContext,
+  ValidatedShippingMethod,
 } from "shipping-methods-dsl";
 ```
 
@@ -1326,25 +1237,36 @@ Current version: **1.4.0**
 
 **Breaking Changes:**
 - **BREAKING**: Moved `availability` from method-level to tier-level for tiered pricing
+- **BREAKING**: Removed old types: `ShippingCalculationResult`, `ShippingMethodDetail`
+- **BREAKING**: New types: `DisplayShippingMethod` (FE), `ValidatedShippingMethod` (BE)
 - **BREAKING**: Removed functions: `calculateShippingMethod`, `calculateAllShippingMethods`, `getAvailableShippingMethods`, `getCheapestShippingMethod`, `getTieredMethodOptions`
 - **BREAKING**: Removed exports: `getPricingPlugin`, `calculatePrice`, `evaluateConditions`, `calculateRemaining`, `getMinimumRequired`
+- **BREAKING**: Split `engine.ts` into `frontend.ts` and `backend.ts` for tree-shaking
+
+**New Architecture:**
+- Tree-shakeable modules: Import only frontend or backend code, not both
+- `frontend.ts`: Client-side shipping method display logic
+- `backend.ts`: Server-side order validation logic
+- `utils.ts`: Shared utilities (localization, interpolation)
 
 **New Features:**
-- Added `nextTier` field with complete next tier information (id, label, price, estimatedDays)
-- Added `availabilityMode` field to results ("hide" | "show_disabled" | "show_hint")
-- Added `enabled` and `meta` fields to `getShippingMethodsForDisplay` results
+- `DisplayShippingMethod`: Complete UI data (icon, badge, progress, nextTier, etc.)
+- `ValidatedShippingMethod`: Minimal validation data (id, price, available, name)
+- `nextTier` field with complete next tier information (id, label, price, estimatedDays)
+- `availabilityMode` field to control UI rendering ("hide" | "show_disabled" | "show_hint")
 - Kept method-level `availability` for non-tiered pricing (flat, item_based, value_based)
 
 **Improvements:**
 - Simplified API to 2 core functions: `getShippingMethodsForDisplay` (FE) and `getShippingMethodById` (BE)
-- User-centric design: frontend gets everything needed, backend validates selections
-- Tier-level availability enables better upgrade hints and progress tracking
-- Simplified availability logic: `conditions` = hard requirements, `availability` = upgrade hints
+- User-centric design: Types designed for actual use cases, not generic results
+- Smaller bundles: Frontend doesn't ship backend validation code and vice versa
+- Clearer separation of concerns: Display logic vs validation logic
 
 **Testing & Documentation:**
 - Added vitest v4.0.8 for testing with comprehensive test suite
+- Separate test files: `frontend.test.ts` (10 tests) and `backend.test.ts` (11 tests)
 - Added MIGRATION-v1.4.0.md with detailed upgrade guide
-- Completely rewrote README with use-case-driven examples
+- Completely rewrote README with FE/BE separation and architecture explanation
 
 **v1.3.0**
 - Added `id` field to `ShippingCalculationResult` for easier frontend-backend integration
