@@ -193,7 +193,9 @@ Extensible plugin system for custom logic (e.g., weight-based).
 
 ## Availability & Upselling
 
-Control how tier upgrade hints appear for tiered pricing:
+### Tier-Level Availability (for Tiered Pricing)
+
+Control how tier upgrade hints appear when users are in a lower tier:
 
 ```json
 {
@@ -221,12 +223,53 @@ Control how tier upgrade hints appear for tiered pricing:
 }
 ```
 
-**Modes:**
-- `hide` - Don't show upgrade hint
+**When to use:** Show progress hints when user is in paid tier but can upgrade to free tier.
+
+### Method-Level Availability (for Non-Tiered Pricing)
+
+Control how methods appear when conditions aren't met:
+
+```json
+{
+  "id": "shipping.promo.free",
+  "enabled": true,
+  "name": "Promotional Free Shipping",
+  "conditions": {
+    "order": { "value": { "min": 50 } }
+  },
+  "pricing": {
+    "type": "flat",
+    "amount": 0
+  },
+  "availability": {
+    "mode": "show_hint",
+    "when": ["order.value.min"],
+    "message": "Add ${remaining} more to unlock promotional free shipping",
+    "showProgress": true
+  }
+}
+```
+
+**When to use:** Show hints for flat/item-based/value-based pricing methods that aren't available yet.
+
+### Availability Modes
+
+- `hide` - Don't show the method/hint (default)
 - `show_disabled` - Show as disabled with message (full card UI)
 - `show_hint` - Show small hint/banner about how to unlock
 
-**Note:** `availability` is configured at the **tier level** (not method level) to show progress hints when approaching a better tier.
+### Key Differences
+
+**Tier-level availability:**
+- Configured on individual tiers (rules)
+- Shows hints when user is in a lower tier
+- Example: "You're using paid shipping, add $25 more for free"
+
+**Method-level availability:**
+- Configured on the shipping method itself
+- Shows hints when method conditions aren't met
+- Only for non-tiered pricing (flat, item_based, value_based)
+- Example: "Add $20 more to unlock promotional free shipping"
 
 ## Localization
 
@@ -574,7 +617,9 @@ Control how shipping methods appear in your UI:
 
 ### Progress Tracking
 
-Show users how close they are to unlocking better shipping tiers. Add `availability` config to the target tier:
+Show users how close they are to unlocking better shipping options.
+
+**For tiered pricing:** Add `availability` config to the target tier:
 
 ```json
 {
@@ -604,11 +649,33 @@ Show users how close they are to unlocking better shipping tiers. Add `availabil
 
 Access progress information in your UI:
 
+**For non-tiered pricing:** Add `availability` config to the method:
+
+```json
+{
+  "id": "shipping.promo.free",
+  "name": "Promotional Free Shipping",
+  "conditions": {
+    "order": { "value": { "min": 50 } }
+  },
+  "pricing": { "type": "flat", "amount": 0 },
+  "availability": {
+    "mode": "show_hint",
+    "when": ["order.value.min"],
+    "message": "Add ${remaining} more to unlock promotional free shipping",
+    "showProgress": true
+  }
+}
+```
+
+**Access progress information in your UI:**
+
 ```typescript
 const methods = getShippingMethodsForDisplay(config, context);
 methods.forEach(method => {
-  // Progress is shown when current tier is matched
-  // but there's a better tier with availability config
+  // Progress is shown when:
+  // - Tiered: user is in lower tier, better tier has availability config
+  // - Non-tiered: method conditions not met, has availability config
   if (method.progress) {
     const { current, required, remaining, percentage } = method.progress;
     console.log(`Progress: ${percentage.toFixed(0)}%`);
@@ -752,6 +819,7 @@ interface ShippingMethod {
     order?: OrderConditions;
   };
   pricing: Pricing;
+  availability?: Availability; // Method-level availability for non-tiered pricing
   estimatedDays?: EstimatedDays;
   meta?: Record<string, unknown>;
 }
@@ -771,6 +839,7 @@ interface ShippingCalculationResult {
   tierId?: string;         // Tier ID (for tiered pricing)
   price: number;
   available: boolean;
+  availabilityMode?: "hide" | "show_disabled" | "show_hint"; // How to display when not available/showing hints
   message?: string;
   estimatedDays?: EstimatedDays;
   promoText?: string;
@@ -1114,10 +1183,14 @@ Current version: **1.4.0**
 ### Changelog
 
 **v1.4.0**
-- **BREAKING**: Moved `availability` from method level to tier level
+- **BREAKING**: Moved `availability` from method-level to tier-level for tiered pricing
+- Kept method-level `availability` for non-tiered pricing (flat, item_based, value_based)
+- Added `availabilityMode` field to `ShippingCalculationResult` ("hide" | "show_disabled" | "show_hint")
 - Tier-level availability enables better upgrade hints and progress tracking
-- Simplified availability logic: hard requirements (conditions) vs upgrade hints (tier availability)
-- Updated examples to demonstrate tier-level availability
+- Simplified availability logic: `conditions` = hard requirements, `availability` = upgrade hints
+- Added vitest v4.0.8 for testing with comprehensive test suite
+- Added MIGRATION-v1.4.0.md with detailed upgrade guide
+- Updated examples and documentation
 
 **v1.3.0**
 - Added `id` field to `ShippingCalculationResult` for easier frontend-backend integration
