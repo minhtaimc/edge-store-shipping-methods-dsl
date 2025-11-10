@@ -197,7 +197,7 @@ describe("v1.4.0 - Non-tiered availability", () => {
     expect(result.availabilityMode).toBeUndefined();
   });
 
-  it("should default to hide when no availability config", () => {
+  it("should filter out methods with hide mode when no availability config", () => {
     const context: EvaluationContext = {
       orderValue: 50,
       itemCount: 2,
@@ -207,14 +207,13 @@ describe("v1.4.0 - Non-tiered availability", () => {
 
     const result = calculateShippingMethod(testConfig.methods[2], context);
 
-    expect(result.available).toBe(false);
-    expect(result.availabilityMode).toBe("hide");
-    expect(result.message).toBe("Conditions not met");
+    // Method with availabilityMode: "hide" should be filtered out
+    expect(result).toBeUndefined();
   });
 });
 
 describe("v1.4.0 - Display filtering", () => {
-  it("should include availabilityMode in display methods", () => {
+  it("should filter out hidden methods (availabilityMode: hide)", () => {
     const context: EvaluationContext = {
       orderValue: 75,
       itemCount: 2,
@@ -224,17 +223,17 @@ describe("v1.4.0 - Display filtering", () => {
 
     const displayMethods = getShippingMethodsForDisplay(testConfig, context);
 
-    expect(displayMethods).toHaveLength(3);
+    // Should only return 2 methods (Canada Shipping is hidden because country = US)
+    expect(displayMethods).toHaveLength(2);
 
     // Promotional Free Shipping - available (orderValue 75 >= 50)
     const promo = displayMethods.find((m) => m.methodId === "shipping.promo.free");
     expect(promo?.available).toBe(true);
     expect(promo?.availabilityMode).toBeUndefined();
 
-    // Canada Shipping - not available, should hide
+    // Canada Shipping - should be filtered out (availabilityMode: "hide")
     const canada = displayMethods.find((m) => m.methodId === "shipping.ca.standard");
-    expect(canada?.available).toBe(false);
-    expect(canada?.availabilityMode).toBe("hide");
+    expect(canada).toBeUndefined();
 
     // Standard Shipping - available with upgrade hint
     const standard = displayMethods.find((m) => m.methodId === "shipping.us.standard");

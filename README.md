@@ -75,6 +75,7 @@ const context: EvaluationContext = {
 const methods: DisplayShippingMethod[] = getShippingMethodsForDisplay(config, context);
 
 // 4. Display in your UI
+// Note: Methods with availabilityMode: "hide" are automatically filtered out
 methods.forEach(method => {
   if (method.available) {
     // Show as selectable option
@@ -339,7 +340,7 @@ Control how methods appear when conditions aren't met:
 
 ### Availability Modes
 
-- `hide` - Don't show the method/hint (default)
+- `hide` - Don't show the method/hint (default) - **filtered out by `getShippingMethodsForDisplay()`**
 - `show_disabled` - Show as disabled with message (full card UI)
 - `show_hint` - Show small hint/banner about how to unlock
 
@@ -404,7 +405,9 @@ const config = validateShippingConfig(configJson);
 
 **Use case:** Frontend checkout page - get all shipping methods with complete display information.
 
-Returns all shipping methods with full display details including:
+**Important:** Methods with `availabilityMode: "hide"` are automatically filtered out. Only methods that should be displayed (either available, disabled with hints, or with upgrade progress) are returned.
+
+Returns all visible shipping methods with full display details including:
 - Current tier information (name, price, estimatedDays, icon, badge)
 - Availability status and display mode
 - Upgrade hints with progress tracking

@@ -273,6 +273,7 @@ export function getShippingMethodsForDisplay(
 ): DisplayShippingMethod[] {
   return config.methods
     .map((method) => calculateShippingMethod(method, context))
+    .filter((method) => method.availabilityMode !== "hide")
     .sort((a, b) => {
       // Sort by priority first (if available)
       const methodA = config.methods.find((m) => m.id === a.methodId);
