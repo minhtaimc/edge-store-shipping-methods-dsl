@@ -113,6 +113,13 @@ export interface ShippingCalculationResult {
     remaining: number;
     percentage: number;
   };
+  nextTier?: {
+    // Information about the next better tier (for upgrade hints)
+    id: string; // Tier ID
+    label?: string; // Localized tier label
+    price: number;
+    estimatedDays?: EstimatedDays;
+  };
 }
 
 // Custom plugin interface for extensibility
@@ -143,5 +150,13 @@ export interface ShippingMethodDetail {
     remaining: number;
     percentage: number;
   };
+  nextTier?: {
+    // Information about the next better tier (for upgrade hints)
+    id: string; // Tier ID
+    label?: string; // Localized tier label
+    price: number;
+    estimatedDays?: EstimatedDays;
+  };
+  availabilityMode?: "hide" | "show_disabled" | "show_hint";
   meta?: Record<string, unknown>;
 }

@@ -188,6 +188,14 @@ export function calculateShippingMethod(
                 percentage: required > 0 ? (current / required) * 100 : 0,
               };
             }
+
+            // Add next tier information
+            result.nextTier = {
+              id: nextTier.id,
+              label: resolveLocalizedString(nextTier.label, locale),
+              price: nextTier.price,
+              estimatedDays: nextTier.estimatedDays,
+            };
           }
         }
       }

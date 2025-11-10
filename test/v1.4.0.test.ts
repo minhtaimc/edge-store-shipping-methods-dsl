@@ -109,6 +109,13 @@ describe("v1.4.0 - Tier-level availability", () => {
     expect(result.progress).toBeDefined();
     expect(result.progress?.percentage).toBe(75);
     expect(result.progress?.remaining).toBe(25);
+
+    // Check next tier information
+    expect(result.nextTier).toBeDefined();
+    expect(result.nextTier?.id).toBe("tier_free");
+    expect(result.nextTier?.label).toBe("Free Standard Shipping");
+    expect(result.nextTier?.price).toBe(0);
+    expect(result.nextTier?.estimatedDays).toEqual({ min: 5, max: 7 });
   });
 
   it("should show promo text when free tier unlocked", () => {

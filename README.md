@@ -676,12 +676,28 @@ methods.forEach(method => {
   // Progress is shown when:
   // - Tiered: user is in lower tier, better tier has availability config
   // - Non-tiered: method conditions not met, has availability config
-  if (method.progress) {
+  if (method.progress && method.nextTier) {
     const { current, required, remaining, percentage } = method.progress;
+    const { label, price, estimatedDays } = method.nextTier;
+
+    console.log(`Current: ${method.name} - $${method.price}`);
     console.log(`Progress: ${percentage.toFixed(0)}%`);
+    console.log(`Next tier: ${label} - $${price}`);
+    if (estimatedDays) {
+      console.log(`Delivery: ${estimatedDays.min}-${estimatedDays.max} days`);
+    }
     console.log(`${method.upgradeMessage}`); // e.g., "Add $25 more to unlock free shipping"
   }
 });
+```
+
+**Example output:**
+```
+Current: Standard Shipping - $4.97
+Progress: 75%
+Next tier: Free Standard Shipping - $0
+Delivery: 5-7 days
+Add $25.00 more to unlock free shipping
 ```
 
 ### Metadata
@@ -849,6 +865,13 @@ interface ShippingCalculationResult {
     required: number;
     remaining: number;
     percentage: number;
+  };
+  nextTier?: {
+    // Information about the next better tier (for upgrade hints)
+    id: string;         // Tier ID
+    label?: string;     // Localized tier label
+    price: number;      // Price of next tier
+    estimatedDays?: EstimatedDays; // Delivery time of next tier
   };
 }
 
