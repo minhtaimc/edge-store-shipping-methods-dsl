@@ -46,6 +46,7 @@ export interface Rule {
   estimatedDays?: EstimatedDays;
   promoText?: LocalizedString;
   upgradeMessage?: LocalizedString;
+  availability?: Availability; // Tier-level availability for upgrade hints
 }
 
 export type Pricing =
@@ -71,7 +72,7 @@ export interface ShippingMethod {
   display?: Display;
   conditions?: Conditions;
   pricing: Pricing;
-  availability?: Availability;
+  availability?: Availability; // For non-tiered: how to show when conditions not met
   estimatedDays?: EstimatedDays;
   meta?: Record<string, unknown>;
 }
@@ -99,12 +100,14 @@ export interface ShippingCalculationResult {
   methodId: string; // Base method ID
   tierId?: string; // Tier ID if tiered pricing was used
   price: number;
-  available: boolean;
-  message?: string;
+  available: boolean; // Can be selected (user can choose this method)
+  availabilityMode?: "hide" | "show_disabled" | "show_hint"; // Display mode for unavailable methods or upgrade hints
+  message?: string; // Unavailability or informational message
   estimatedDays?: EstimatedDays;
-  promoText?: string;
-  upgradeMessage?: string;
+  promoText?: string; // Promotional text when tier is unlocked
+  upgradeMessage?: string; // Message about how to upgrade to better tier
   progress?: {
+    // Progress towards unlocking next tier
     current: number;
     required: number;
     remaining: number;

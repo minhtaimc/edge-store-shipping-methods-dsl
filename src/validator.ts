@@ -53,7 +53,8 @@ const types = scope({
     price: "number >= 0",
     "estimatedDays?": "EstimatedDays",
     "promoText?": "LocalizedString",
-    "upgradeMessage?": "LocalizedString"
+    "upgradeMessage?": "LocalizedString",
+    "availability?": "Availability"
   },
 
   PricingFlat: {

@@ -1,0 +1,267 @@
+/**
+ * Test suite for v1.4.0 features
+ * - Tier-level availability
+ * - Method-level availability for non-tiered
+ * - availabilityMode field in results
+ */
+
+import { describe, it, expect } from "vitest";
+import {
+  validateShippingConfig,
+  calculateShippingMethod,
+  getShippingMethodsForDisplay,
+  type ShippingConfig,
+  type EvaluationContext,
+} from "../src/index";
+
+// Test configuration with tier-level availability
+const testConfig: ShippingConfig = {
+  version: "1.0",
+  currency: "USD",
+  methods: [
+    {
+      id: "shipping.us.standard",
+      enabled: true,
+      name: "Standard Shipping",
+      conditions: {
+        geo: { country: { include: ["US"] } },
+      },
+      pricing: {
+        type: "tiered",
+        rules: [
+          {
+            id: "tier_paid",
+            label: "Standard Shipping",
+            criteria: {
+              order: { value: { max: 99.99 } },
+            },
+            price: 4.97,
+            estimatedDays: { min: 5, max: 7 },
+          },
+          {
+            id: "tier_free",
+            label: "Free Standard Shipping",
+            criteria: {
+              order: { value: { min: 100 } },
+            },
+            price: 0,
+            estimatedDays: { min: 5, max: 7 },
+            promoText: "You've unlocked free standard shipping!",
+            availability: {
+              mode: "show_hint",
+              when: ["order.value.min"],
+              message: "Add $${remaining} more to unlock free standard shipping",
+              showProgress: true,
+            },
+          },
+        ],
+      },
+    },
+    {
+      id: "shipping.promo.free",
+      enabled: true,
+      name: "Promotional Free Shipping",
+      conditions: {
+        order: { value: { min: 50 } },
+      },
+      pricing: {
+        type: "flat",
+        amount: 0,
+      },
+      availability: {
+        mode: "show_hint",
+        when: ["order.value.min"],
+        message: "Add $${remaining} more to unlock promotional free shipping",
+        showProgress: true,
+      },
+    },
+    {
+      id: "shipping.ca.standard",
+      enabled: true,
+      name: "Canada Shipping",
+      conditions: {
+        geo: { country: { include: ["CA"] } },
+      },
+      pricing: {
+        type: "flat",
+        amount: 9.99,
+      },
+    },
+  ],
+};
+
+describe("v1.4.0 - Tier-level availability", () => {
+  it("should show upgrade hint when in paid tier", () => {
+    const context: EvaluationContext = {
+      orderValue: 75,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[0], context);
+
+    expect(result.available).toBe(true);
+    expect(result.price).toBe(4.97);
+    expect(result.tierId).toBe("tier_paid");
+    expect(result.availabilityMode).toBe("show_hint");
+    expect(result.upgradeMessage).toContain("25");
+    expect(result.progress).toBeDefined();
+    expect(result.progress?.percentage).toBe(75);
+    expect(result.progress?.remaining).toBe(25);
+  });
+
+  it("should show promo text when free tier unlocked", () => {
+    const context: EvaluationContext = {
+      orderValue: 150,
+      itemCount: 3,
+      country: "US",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[0], context);
+
+    expect(result.available).toBe(true);
+    expect(result.price).toBe(0);
+    expect(result.tierId).toBe("tier_free");
+    expect(result.promoText).toContain("unlocked");
+    expect(result.availabilityMode).toBeUndefined();
+    expect(result.upgradeMessage).toBeUndefined();
+  });
+
+  it("should hide when hard requirements not met", () => {
+    const context: EvaluationContext = {
+      orderValue: 75,
+      itemCount: 2,
+      country: "CA",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[0], context);
+
+    expect(result.available).toBe(false);
+    expect(result.availabilityMode).toBeUndefined();
+    expect(result.message).toBe("Conditions not met");
+  });
+});
+
+describe("v1.4.0 - Non-tiered availability", () => {
+  it("should show hint when conditions not met", () => {
+    const context: EvaluationContext = {
+      orderValue: 30,
+      itemCount: 1,
+      country: "US",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[1], context);
+
+    expect(result.available).toBe(false);
+    expect(result.availabilityMode).toBe("show_hint");
+    expect(result.message).toContain("20");
+    expect(result.progress).toBeDefined();
+    expect(result.progress?.percentage).toBe(60);
+    expect(result.progress?.remaining).toBe(20);
+  });
+
+  it("should be available when conditions met", () => {
+    const context: EvaluationContext = {
+      orderValue: 60,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[1], context);
+
+    expect(result.available).toBe(true);
+    expect(result.price).toBe(0);
+    expect(result.availabilityMode).toBeUndefined();
+  });
+
+  it("should default to hide when no availability config", () => {
+    const context: EvaluationContext = {
+      orderValue: 50,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[2], context);
+
+    expect(result.available).toBe(false);
+    expect(result.availabilityMode).toBe("hide");
+    expect(result.message).toBe("Conditions not met");
+  });
+});
+
+describe("v1.4.0 - Display filtering", () => {
+  it("should include availabilityMode in display methods", () => {
+    const context: EvaluationContext = {
+      orderValue: 75,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+    };
+
+    const displayMethods = getShippingMethodsForDisplay(testConfig, context);
+
+    expect(displayMethods).toHaveLength(3);
+
+    // Promotional Free Shipping - available (orderValue 75 >= 50)
+    const promo = displayMethods.find((m) => m.methodId === "shipping.promo.free");
+    expect(promo?.available).toBe(true);
+    expect(promo?.availabilityMode).toBeUndefined();
+
+    // Canada Shipping - not available, should hide
+    const canada = displayMethods.find((m) => m.methodId === "shipping.ca.standard");
+    expect(canada?.available).toBe(false);
+    expect(canada?.availabilityMode).toBe("hide");
+
+    // Standard Shipping - available with upgrade hint
+    const standard = displayMethods.find((m) => m.methodId === "shipping.us.standard");
+    expect(standard?.available).toBe(true);
+    expect(standard?.availabilityMode).toBe("show_hint");
+    expect(standard?.upgradeMessage).toBeDefined();
+  });
+});
+
+describe("v1.4.0 - Configuration validation", () => {
+  it("should validate configuration successfully", () => {
+    expect(() => validateShippingConfig(testConfig)).not.toThrow();
+
+    const validated = validateShippingConfig(testConfig);
+    expect(validated.methods).toHaveLength(3);
+  });
+
+  it("should validate tier-level availability", () => {
+    const config = {
+      version: "1.0",
+      methods: [
+        {
+          id: "test",
+          enabled: true,
+          name: "Test",
+          pricing: {
+            type: "tiered",
+            rules: [
+              {
+                id: "tier1",
+                price: 5,
+                criteria: { order: { value: { max: 50 } } },
+                availability: {
+                  mode: "show_hint",
+                  when: ["order.value.min"],
+                  message: "Test message",
+                  showProgress: true,
+                },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    expect(() => validateShippingConfig(config)).not.toThrow();
+  });
+});

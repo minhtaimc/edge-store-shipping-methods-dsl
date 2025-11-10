@@ -45,6 +45,8 @@ coverage/
 .nyc_output/
 *.lcov
 .jest/
+test/**/*.js
+test/**/*.d.ts
 
 
 # Misc
@@ -53,3 +55,5 @@ coverage/
 .cache/
 .turbo/
 .parcel-cache/
+
+nul
