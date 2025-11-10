@@ -235,6 +235,7 @@
         "conditions": { "$ref": "#/$defs/Conditions" },
         "pricing": { "$ref": "#/$defs/Pricing" },
         "availability": { "$ref": "#/$defs/Availability" },
+        "estimatedDays": { "$ref": "#/$defs/EstimatedDays" },
         "meta": { "type": "object" }
       }
     }

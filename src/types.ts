@@ -72,6 +72,7 @@ export interface ShippingMethod {
   conditions?: Conditions;
   pricing: Pricing;
   availability?: Availability;
+  estimatedDays?: EstimatedDays;
   meta?: Record<string, unknown>;
 }
 

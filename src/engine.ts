@@ -103,6 +103,57 @@ export function calculateShippingMethod(
 
   // Handle tiered pricing
   if (method.pricing.type === "tiered") {
+    // Check base conditions first for tiered pricing
+    if (!conditionsMet) {
+      // Handle availability display modes for tiered methods
+      if (method.availability) {
+        const { mode, when, message, showProgress } = method.availability;
+
+        if (mode === "show_disabled" || mode === "show_hint") {
+          const firstCondition = when?.[0];
+          let remaining = 0;
+          let required = 0;
+
+          if (firstCondition) {
+            remaining = calculateRemaining(firstCondition, method.conditions, context);
+            required = getMinimumRequired(firstCondition, method.conditions) ?? 0;
+          }
+
+          const resolvedMessage = interpolateMessage(
+            resolveLocalizedString(message, locale),
+            { remaining: remaining.toFixed(2) }
+          );
+
+          const result: ShippingCalculationResult = {
+            methodId: method.id,
+            price: 0,
+            available: false,
+            message: resolvedMessage,
+          };
+
+          if (showProgress && firstCondition) {
+            const current = required - remaining;
+            result.progress = {
+              current,
+              required,
+              remaining,
+              percentage: required > 0 ? (current / required) * 100 : 0,
+            };
+          }
+
+          return result;
+        }
+      }
+
+      return {
+        methodId: method.id,
+        price: 0,
+        available: false,
+        message: "Conditions not met",
+      };
+    }
+
+    // Base conditions met, find matching tier
     const matchingRule = findMatchingRule(method.pricing.rules, context);
 
     if (matchingRule) {
@@ -116,7 +167,55 @@ export function calculateShippingMethod(
       };
     }
 
-    // No matching rule
+    // No matching tier - check if we should show availability hints
+    if (method.availability) {
+      const { mode, when, message, showProgress } = method.availability;
+
+      if (mode === "show_disabled" || mode === "show_hint") {
+        // Find the minimum requirement from all tiers
+        let minRequired = Infinity;
+        let matchingCondition: string | undefined;
+
+        for (const tier of method.pricing.rules) {
+          if (tier.criteria.order?.value?.min !== undefined) {
+            if (tier.criteria.order.value.min < minRequired) {
+              minRequired = tier.criteria.order.value.min;
+              matchingCondition = "order.value.min";
+            }
+          }
+        }
+
+        if (matchingCondition && when?.includes(matchingCondition as any)) {
+          const remaining = minRequired - context.orderValue;
+
+          const resolvedMessage = interpolateMessage(
+            resolveLocalizedString(message, locale),
+            { remaining: remaining.toFixed(2) }
+          );
+
+          const result: ShippingCalculationResult = {
+            methodId: method.id,
+            price: 0,
+            available: false,
+            message: resolvedMessage,
+          };
+
+          if (showProgress) {
+            const current = context.orderValue;
+            result.progress = {
+              current,
+              required: minRequired,
+              remaining,
+              percentage: minRequired > 0 ? (current / minRequired) * 100 : 0,
+            };
+          }
+
+          return result;
+        }
+      }
+    }
+
+    // No matching rule and no availability hint
     return {
       methodId: method.id,
       price: 0,
@@ -194,6 +293,7 @@ export function calculateShippingMethod(
     methodId: method.id,
     price,
     available: true,
+    estimatedDays: method.estimatedDays,
     promoText: resolveLocalizedString(method.display?.promoText, locale),
   };
 }
@@ -313,10 +413,15 @@ export function getShippingMethodById(
       return undefined;
     }
 
+    // Check base conditions first
+    const baseConditionsMet = evaluateConditions(method.conditions, context);
+
     // Check if this tier is valid for the current context
     const tierValid = evaluateTieredRule(tier, context);
 
-    return {
+    const available = method.enabled && baseConditionsMet && tierValid;
+
+    const result: ShippingMethodDetail = {
       id: `${methodId}:${tierId}`,
       methodId,
       tierId,
@@ -325,14 +430,42 @@ export function getShippingMethodById(
       icon: method.icon,
       badge: method.display?.badge,
       price: tier.price,
-      available: method.enabled && tierValid,
+      available,
       enabled: method.enabled,
       estimatedDays: tier.estimatedDays,
-      message: tierValid ? undefined : "Tier criteria not met",
+      message: !available ? (baseConditionsMet ? "Tier criteria not met" : "Conditions not met") : undefined,
       promoText: resolveLocalizedString(tier.promoText, locale),
       upgradeMessage: resolveLocalizedString(tier.upgradeMessage, locale),
       meta: method.meta,
     };
+
+    // Add progress information if base conditions not met and availability configured
+    if (!baseConditionsMet && method.availability) {
+      const { when, message, showProgress } = method.availability;
+
+      if (when && message) {
+        const firstCondition = when[0];
+        const remaining = calculateRemaining(firstCondition, method.conditions, context);
+        const required = getMinimumRequired(firstCondition, method.conditions) ?? 0;
+
+        result.message = interpolateMessage(
+          resolveLocalizedString(message, locale),
+          { remaining: remaining.toFixed(2) }
+        );
+
+        if (showProgress) {
+          const current = required - remaining;
+          result.progress = {
+            current,
+            required,
+            remaining,
+            percentage: required > 0 ? (current / required) * 100 : 0,
+          };
+        }
+      }
+    }
+
+    return result;
   }
 
   // For non-tiered or when no tier ID specified

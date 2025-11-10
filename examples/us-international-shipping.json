@@ -1,0 +1,186 @@
+{
+  "$schema": "https://cdn.jsdelivr.net/npm/shipping-methods-dsl@1/schema/shipping-methods.v1.schema.json",
+  "version": "1.0",
+  "currency": "USD",
+  "methods": [
+    {
+      "id": "shipping.us.standard",
+      "enabled": true,
+      "name": "Standard Shipping",
+      "description": "Delivery in 5-7 business days",
+      "icon": "📦",
+      "display": {
+        "priority": 1
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        },
+        "order": {
+          "value": {
+            "max": 99.99
+          }
+        }
+      },
+      "pricing": {
+        "type": "flat",
+        "amount": 4.97
+      },
+      "estimatedDays": {
+        "min": 5,
+        "max": 7
+      }
+    },
+    {
+      "id": "shipping.us.express",
+      "enabled": true,
+      "name": "Express Shipping",
+      "description": "Delivery in 2-3 business days",
+      "icon": "🚀",
+      "display": {
+        "priority": 2
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        },
+        "order": {
+          "value": {
+            "max": 499.99
+          }
+        }
+      },
+      "pricing": {
+        "type": "item_based",
+        "firstItemPrice": 9.97,
+        "additionalItemPrice": 1.97
+      },
+      "estimatedDays": {
+        "min": 2,
+        "max": 3
+      }
+    },
+    {
+      "id": "shipping.us.overnight",
+      "enabled": true,
+      "name": "Overnight Shipping",
+      "description": "Next business day delivery",
+      "icon": "⚡",
+      "display": {
+        "priority": 3,
+        "badge": "Fastest"
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        }
+      },
+      "pricing": {
+        "type": "item_based",
+        "firstItemPrice": 29.97,
+        "additionalItemPrice": 10.97
+      },
+      "estimatedDays": {
+        "min": 1,
+        "max": 1
+      }
+    },
+    {
+      "id": "shipping.us.free",
+      "enabled": true,
+      "name": "Free Shipping",
+      "description": "Free delivery based on order value",
+      "icon": "🎁",
+      "display": {
+        "priority": 0,
+        "badge": "Free"
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "include": ["US"]
+          }
+        }
+      },
+      "pricing": {
+        "type": "tiered",
+        "rules": [
+          {
+            "id": "tier_standard",
+            "label": "Free Standard Shipping",
+            "criteria": {
+              "order": {
+                "value": {
+                  "min": 100,
+                  "max": 499.99
+                }
+              }
+            },
+            "price": 0,
+            "estimatedDays": {
+              "min": 5,
+              "max": 7
+            },
+            "promoText": "You've unlocked free standard shipping!"
+          },
+          {
+            "id": "tier_express",
+            "label": "Free Express Shipping",
+            "criteria": {
+              "order": {
+                "value": {
+                  "min": 500
+                }
+              }
+            },
+            "price": 0,
+            "estimatedDays": {
+              "min": 2,
+              "max": 3
+            },
+            "promoText": "You've unlocked free express shipping!",
+            "upgradeMessage": "Premium shipping at no cost for orders over $500"
+          }
+        ]
+      },
+      "availability": {
+        "mode": "show_hint",
+        "when": ["order.value.min"],
+        "message": "Add ${remaining} more to unlock free shipping",
+        "showProgress": true
+      }
+    },
+    {
+      "id": "shipping.international.standard",
+      "enabled": true,
+      "name": "International Standard Shipping",
+      "description": "Delivery in 10-15 business days",
+      "icon": "🌍",
+      "display": {
+        "priority": 10
+      },
+      "conditions": {
+        "geo": {
+          "country": {
+            "exclude": ["US"]
+          }
+        }
+      },
+      "pricing": {
+        "type": "item_based",
+        "firstItemPrice": 9.97,
+        "additionalItemPrice": 3.97
+      },
+      "estimatedDays": {
+        "min": 10,
+        "max": 15
+      }
+    }
+  ]
+}

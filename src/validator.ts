@@ -104,6 +104,7 @@ const types = scope({
     "conditions?": "Conditions",
     pricing: "Pricing",
     "availability?": "Availability",
+    "estimatedDays?": "EstimatedDays",
     "meta?": "object"
   },
 
