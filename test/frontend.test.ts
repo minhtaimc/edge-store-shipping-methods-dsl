@@ -147,6 +147,35 @@ describe("v1.4.0 - Tier-level availability", () => {
     expect(result.upgradeMessage).toBeUndefined();
   });
 
+  it("should use tier label as name instead of method name", () => {
+    const context: EvaluationContext = {
+      orderValue: 75,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+    };
+
+    const result = calculateShippingMethod(testConfig.methods[0], context);
+
+    // Should use tier label "Standard Shipping" not method name
+    expect(result.name).toBe("Standard Shipping");
+    expect(result.tierId).toBe("tier_paid");
+
+    // When free tier is unlocked
+    const contextFree: EvaluationContext = {
+      orderValue: 150,
+      itemCount: 3,
+      country: "US",
+      locale: "en",
+    };
+
+    const resultFree = calculateShippingMethod(testConfig.methods[0], contextFree);
+
+    // Should use tier label "Free Standard Shipping"
+    expect(resultFree.name).toBe("Free Standard Shipping");
+    expect(resultFree.tierId).toBe("tier_free");
+  });
+
   it("should hide when hard requirements not met", () => {
     const context: EvaluationContext = {
       orderValue: 75,

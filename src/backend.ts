@@ -90,7 +90,7 @@ export function getShippingMethodById(
       id,
       methodId: method.id,
       tierId: tier.id,
-      name: resolveLocalizedString(method.name, locale) ?? "",
+      name: resolveLocalizedString(tier.label, locale) ?? resolveLocalizedString(method.name, locale) ?? "",
       description: resolveLocalizedString(method.description, locale),
       price: tier.price,
       available,

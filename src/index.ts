@@ -46,4 +46,4 @@ export { registerPricingPlugin, weightBasedPlugin } from "./pricing.js";
 // ============================================
 // VERSION
 // ============================================
-export const VERSION = "2.0.2";
+export const VERSION = "2.0.3";

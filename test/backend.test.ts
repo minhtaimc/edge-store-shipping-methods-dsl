@@ -141,6 +141,31 @@ describe("Backend API - getShippingMethodById()", () => {
       expect(method?.available).toBe(false);
     });
 
+    it("should use tier label as name for tiered pricing", () => {
+      // Test paid tier
+      const methodPaid = getShippingMethodById(
+        testConfig,
+        "shipping.us.standard:tier_paid",
+        baseContext
+      );
+
+      expect(methodPaid?.name).toBe("Standard Shipping");
+      expect(methodPaid?.tierId).toBe("tier_paid");
+
+      // Test free tier
+      const methodFree = getShippingMethodById(
+        testConfig,
+        "shipping.us.standard:tier_free",
+        {
+          ...baseContext,
+          orderValue: 150,
+        }
+      );
+
+      expect(methodFree?.name).toBe("Free Standard Shipping");
+      expect(methodFree?.tierId).toBe("tier_free");
+    });
+
     it("should return undefined for invalid tier ID", () => {
       const method = getShippingMethodById(
         testConfig,

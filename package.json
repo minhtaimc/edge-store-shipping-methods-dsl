@@ -1,6 +1,6 @@
 {
   "name": "shipping-methods-dsl",
-  "version": "2.0.2",
+  "version": "2.0.3",
   "description": "Shipping methods DSL for edge workers, frontend, and admin panels",
   "type": "module",
   "main": "./dist/index.js",

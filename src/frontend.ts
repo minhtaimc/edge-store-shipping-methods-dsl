@@ -80,7 +80,7 @@ function calculateShippingMethod(
         id: `${method.id}:${matchingRule.id}`,
         methodId: method.id,
         tierId: matchingRule.id,
-        name: resolveLocalizedString(method.name, locale) ?? "",
+        name: resolveLocalizedString(matchingRule.label, locale) ?? resolveLocalizedString(method.name, locale) ?? "",
         description: resolveLocalizedString(method.description, locale),
         icon: method.icon,
         badge: method.display?.badge,

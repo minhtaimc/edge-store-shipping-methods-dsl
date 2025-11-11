@@ -1232,9 +1232,17 @@ import type {
 
 ## Version
 
-Current version: **2.0.2**
+Current version: **2.0.3**
 
 ### Changelog
+
+**v2.0.3** - Patch release with tier label support
+
+**Changes:**
+- Use tier `label` as method name for tiered pricing (fallback to method name if not set)
+- Both frontend and backend now show active tier's name instead of generic method name
+- Added test cases to verify tier label is used correctly
+- Example: "Free Standard Shipping" (tier label) instead of "Standard Shipping" (method name)
 
 **v2.0.2** - Patch release with display filtering
 
