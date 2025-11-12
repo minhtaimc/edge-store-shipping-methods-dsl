@@ -279,6 +279,93 @@ const context = {
 };
 ```
 
+**Date Criteria Logic:**
+
+Date matching supports full ISO 8601 timestamps with timezone support:
+
+- `after`: **Inclusive** - timestamp must be **≥** specified timestamp
+  - `"after": "2024-12-15T14:00:00Z"` means orderDate ≥ Dec 15, 2:00 PM UTC
+  - `"after": "2024-12-15"` means orderDate ≥ Dec 15, 12:00 AM (midnight)
+- `before`: **Exclusive** - timestamp must be **<** specified timestamp
+  - `"before": "2024-12-20T17:00:00Z"` means orderDate < Dec 20, 5:00 PM UTC (excludes exact time)
+  - `"before": "2024-12-20"` means orderDate < Dec 20, 12:00 AM (excludes Dec 20 entirely)
+
+**Date-only Examples:**
+
+```typescript
+// Date range: Dec 10-19 (inclusive start, exclusive end)
+"date": { "after": "2024-12-10", "before": "2024-12-20" }
+// Matches: Dec 10 00:00:00 through Dec 19 23:59:59
+// Does NOT match: Dec 9, Dec 20
+
+// Only after (no end date)
+"date": { "after": "2024-12-31" }
+// Matches: Dec 31 00:00:00 and later
+
+// Only before (no start date)
+"date": { "before": "2024-12-15" }
+// Matches: Any time before Dec 15 00:00:00
+```
+
+**Time-based Examples:**
+
+```typescript
+// Business hours: 9 AM - 5 PM UTC
+"date": {
+  "after": "2024-12-15T09:00:00Z",
+  "before": "2024-12-15T17:00:00Z"
+}
+// Matches: 9:00:00 AM through 4:59:59 PM on Dec 15
+// Excludes: 5:00:00 PM and later (before is exclusive)
+
+// After 2 PM EST (3 PM UTC during standard time)
+"date": { "after": "2024-12-15T15:00:00Z" }
+// Matches: Dec 15 3:00 PM UTC and later
+// Note: EST is UTC-5, so 2 PM EST = 7 PM UTC (in daylight time)
+
+// With timezone offset notation
+"date": { "after": "2024-12-15T14:00:00-05:00" }
+// Matches: Dec 15 2:00 PM EST and later (automatically converted to UTC)
+```
+
+**Timezone Support:**
+
+- All ISO 8601 formats supported: `Z` (UTC), `+HH:MM`, `-HH:MM`
+- JavaScript Date objects are converted to timestamps preserving timezone
+- Comparison is done using milliseconds since epoch (timezone-agnostic)
+- Examples:
+  - `2024-12-15T14:00:00Z` → Dec 15, 2:00 PM UTC
+  - `2024-12-15T14:00:00-05:00` → Dec 15, 2:00 PM EST (= 7:00 PM UTC)
+  - `2024-12-15T14:00:00+09:00` → Dec 15, 2:00 PM JST (= 5:00 AM UTC)
+
+**Hide shipping method during specific period:**
+
+Use tiered pricing with "OR logic" to show method outside a blackout period:
+
+```json
+{
+  "pricing": {
+    "type": "tiered",
+    "rules": [
+      {
+        "id": "before_holiday",
+        "criteria": { "date": { "before": "2024-12-15" } },
+        "price": 29.97
+      },
+      {
+        "id": "after_holiday",
+        "criteria": { "date": { "after": "2024-12-30" } },
+        "price": 29.97
+      }
+    ]
+  }
+}
+```
+
+This shows the method before Dec 15 OR after Dec 30, effectively hiding it from Dec 15-30.
+
+**Backward compatibility:** If `orderDate` is not provided in context, all date criteria default to `true` (allow).
+
 ### Custom
 
 Extensible plugin system for custom logic (e.g., weight-based).
@@ -899,6 +986,12 @@ interface OrderConditions {
   weight?: RangeNumber;   // Weight range
 }
 
+// Date-based conditions for seasonal/holiday pricing
+interface DateCriteria {
+  after?: string;         // ISO 8601 date string - inclusive (orderDate >= after)
+  before?: string;        // ISO 8601 date string - exclusive (orderDate < before)
+}
+
 // Pricing types
 type Pricing =
   | { type: "flat"; amount: number }
@@ -914,6 +1007,7 @@ interface Rule {
   criteria: {
     geo?: { country?: GeoCountry };
     order?: OrderConditions;
+    date?: DateCriteria;          // Date-based criteria for seasonal pricing
   };
   price: number;
   estimatedDays?: EstimatedDays;
@@ -948,6 +1042,7 @@ interface ShippingMethod {
   conditions?: {
     geo?: { country?: GeoCountry };
     order?: OrderConditions;
+    date?: DateCriteria;          // Date-based criteria (method-level)
   };
   pricing: Pricing;
   availability?: Availability; // Method-level availability for non-tiered pricing

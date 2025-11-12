@@ -86,6 +86,7 @@ function evaluateGeoCountry(
 
 /**
  * Evaluate date criteria for seasonal/holiday pricing
+ * Supports full ISO 8601 timestamps with timezone
  */
 function evaluateDateCriteria(
   dateCriteria: DateCriteria | undefined,
@@ -99,24 +100,21 @@ function evaluateDateCriteria(
 
   const { after, before } = dateCriteria;
 
-  // Normalize orderDate to start of day for comparison
-  const orderDateOnly = new Date(orderDate);
-  orderDateOnly.setHours(0, 0, 0, 0);
+  // Parse orderDate as full timestamp (preserves time and timezone)
+  const orderTimestamp = new Date(orderDate).getTime();
 
-  // Check if after date
+  // Check if after date (inclusive - orderTimestamp >= after)
   if (after) {
-    const afterDate = new Date(after);
-    afterDate.setHours(0, 0, 0, 0);
-    if (orderDateOnly < afterDate) {
+    const afterTimestamp = new Date(after).getTime();
+    if (orderTimestamp < afterTimestamp) {
       return false;
     }
   }
 
-  // Check if before date
+  // Check if before date (exclusive - orderTimestamp < before)
   if (before) {
-    const beforeDate = new Date(before);
-    beforeDate.setHours(0, 0, 0, 0);
-    if (orderDateOnly > beforeDate) {
+    const beforeTimestamp = new Date(before).getTime();
+    if (orderTimestamp >= beforeTimestamp) {
       return false;
     }
   }

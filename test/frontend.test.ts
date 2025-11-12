@@ -346,119 +346,793 @@ describe("v1.4.0 - Configuration validation", () => {
 });
 
 describe("Date-based criteria for seasonal/holiday pricing", () => {
-  const seasonalConfig = {
-    version: "1.0",
-    methods: [
-      {
-        id: "shipping.seasonal.express",
-        enabled: true,
-        name: "Express Shipping",
-        conditions: {
-          geo: { country: { include: ["US"] } },
-        },
-        pricing: {
-          type: "tiered",
-          rules: [
-            {
-              id: "christmas_rush",
-              label: "Christmas Express (Order by Dec 20)",
-              criteria: {
-                date: { after: "2024-12-10", before: "2024-12-20" },
+  describe("Tier-level date criteria", () => {
+    const seasonalConfig = {
+      version: "1.0",
+      methods: [
+        {
+          id: "shipping.seasonal.express",
+          enabled: true,
+          name: "Express Shipping",
+          conditions: {
+            geo: { country: { include: ["US"] } },
+          },
+          pricing: {
+            type: "tiered",
+            rules: [
+              {
+                id: "christmas_rush",
+                label: "Christmas Express (Order by Dec 20)",
+                criteria: {
+                  date: { after: "2024-12-10", before: "2024-12-20" },
+                },
+                price: 14.99,
+                estimatedDays: { min: 2, max: 3 },
               },
-              price: 14.99,
-              estimatedDays: { min: 2, max: 3 },
-            },
-            {
-              id: "post_christmas",
-              label: "Express Shipping (After Christmas)",
-              criteria: {
-                date: { after: "2024-12-20", before: "2024-12-27" },
+              {
+                id: "post_christmas",
+                label: "Express Shipping (After Christmas)",
+                criteria: {
+                  date: { after: "2024-12-20", before: "2024-12-27" },
+                },
+                price: 12.99,
+                estimatedDays: { min: 7, max: 10 },
               },
-              price: 12.99,
-              estimatedDays: { min: 7, max: 10 },
-            },
-            {
-              id: "normal",
-              label: "Express Shipping",
-              criteria: {},
-              price: 9.99,
-              estimatedDays: { min: 2, max: 3 },
-            },
-          ],
+              {
+                id: "normal",
+                label: "Express Shipping",
+                criteria: {},
+                price: 9.99,
+                estimatedDays: { min: 2, max: 3 },
+              },
+            ],
+          },
         },
-      },
-    ],
-  } as any;
+      ],
+    } as any;
 
-  it("should match Christmas rush tier during holiday period", () => {
-    const context: EvaluationContext = {
-      orderValue: 100,
-      itemCount: 2,
-      country: "US",
-      locale: "en",
-      orderDate: new Date("2024-12-15"),
-    };
+    it("should match tier with 'after' and 'before' criteria (date range)", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-15"),
+      };
 
-    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
-    const method = methods[0];
+      const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+      const method = methods[0];
 
-    expect(method.tierId).toBe("christmas_rush");
-    expect(method.name).toBe("Christmas Express (Order by Dec 20)");
-    expect(method.price).toBe(14.99);
-    expect(method.estimatedDays).toEqual({ min: 2, max: 3 });
+      expect(method.tierId).toBe("christmas_rush");
+      expect(method.name).toBe("Christmas Express (Order by Dec 20)");
+      expect(method.price).toBe(14.99);
+      expect(method.estimatedDays).toEqual({ min: 2, max: 3 });
+    });
+
+    it("should match tier after Christmas deadline", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-22"),
+      };
+
+      const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+      const method = methods[0];
+
+      expect(method.tierId).toBe("post_christmas");
+      expect(method.name).toBe("Express Shipping (After Christmas)");
+      expect(method.price).toBe(12.99);
+      expect(method.estimatedDays).toEqual({ min: 7, max: 10 });
+    });
+
+    it("should match fallback tier with no date criteria", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-11-15"),
+      };
+
+      const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+      const method = methods[0];
+
+      expect(method.tierId).toBe("normal");
+      expect(method.name).toBe("Express Shipping");
+      expect(method.price).toBe(9.99);
+      expect(method.estimatedDays).toEqual({ min: 2, max: 3 });
+    });
+
+    it("should respect boundary - exact match on 'before' date (excluded)", () => {
+      // before: "2024-12-20" means orderDate must be < 2024-12-20
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-20T00:00:00Z"),
+      };
+
+      const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+      const method = methods[0];
+
+      // Should NOT match christmas_rush (before is exclusive)
+      // Should match post_christmas (after: "2024-12-20", meaning >= 2024-12-20)
+      expect(method.tierId).toBe("post_christmas");
+    });
+
+    it("should respect boundary - exact match on 'after' date (included)", () => {
+      // after: "2024-12-10" means orderDate must be >= 2024-12-10
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-10T00:00:00Z"),
+      };
+
+      const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+      const method = methods[0];
+
+      // Should match christmas_rush (after is inclusive)
+      expect(method.tierId).toBe("christmas_rush");
+    });
+
+    it("should default to first matching tier when orderDate not provided (backward compatibility)", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        // No orderDate provided
+      };
+
+      const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+      const method = methods[0];
+
+      // When orderDate is not provided, date criteria defaults to true (backward compatibility)
+      // So first tier with date criteria will match (christmas_rush in this case)
+      expect(method.tierId).toBe("christmas_rush");
+      expect(method.price).toBe(14.99);
+    });
   });
 
-  it("should match post-Christmas tier after deadline", () => {
-    const context: EvaluationContext = {
-      orderValue: 100,
-      itemCount: 2,
-      country: "US",
-      locale: "en",
-      orderDate: new Date("2024-12-22"),
-    };
+  describe("Method-level date criteria", () => {
+    const methodLevelConfig = {
+      version: "1.0",
+      methods: [
+        {
+          id: "shipping.overnight",
+          enabled: true,
+          name: "Overnight Shipping",
+          conditions: {
+            geo: { country: { include: ["US"] } },
+            date: { after: "2024-12-30T23:59:59Z" },
+          },
+          pricing: {
+            type: "flat",
+            amount: 29.97,
+          },
+          estimatedDays: { min: 1, max: 1 },
+        },
+      ],
+    } as any;
 
-    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
-    const method = methods[0];
+    it("should hide method when date condition not met (before threshold)", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-20"),
+      };
 
-    expect(method.tierId).toBe("post_christmas");
-    expect(method.name).toBe("Express Shipping (After Christmas)");
-    expect(method.price).toBe(12.99);
-    expect(method.estimatedDays).toEqual({ min: 7, max: 10 });
+      const methods = getShippingMethodsForDisplay(methodLevelConfig, context);
+
+      // Method should be filtered out (availabilityMode: "hide")
+      expect(methods).toHaveLength(0);
+    });
+
+    it("should show method when date condition met (after threshold)", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-31"),
+      };
+
+      const methods = getShippingMethodsForDisplay(methodLevelConfig, context);
+
+      expect(methods).toHaveLength(1);
+      expect(methods[0].methodId).toBe("shipping.overnight");
+      expect(methods[0].available).toBe(true);
+      expect(methods[0].price).toBe(29.97);
+    });
+
+    it("should show method when orderDate not provided (backward compatibility)", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        // No orderDate provided
+      };
+
+      const methods = getShippingMethodsForDisplay(methodLevelConfig, context);
+
+      // Backward compatibility: date criteria defaults to true
+      expect(methods).toHaveLength(1);
+      expect(methods[0].methodId).toBe("shipping.overnight");
+    });
   });
 
-  it("should match normal tier outside holiday periods", () => {
-    const context: EvaluationContext = {
-      orderValue: 100,
-      itemCount: 2,
-      country: "US",
-      locale: "en",
-      orderDate: new Date("2024-11-15"),
-    };
+  describe("OR logic with tiered pricing (hide in date range)", () => {
+    const orLogicConfig = {
+      version: "1.0",
+      methods: [
+        {
+          id: "shipping.overnight.seasonal",
+          enabled: true,
+          name: "Overnight Shipping",
+          conditions: {
+            geo: { country: { include: ["US"] } },
+          },
+          pricing: {
+            type: "tiered",
+            rules: [
+              {
+                id: "tier_before_holiday",
+                label: "Overnight Shipping",
+                criteria: {
+                  date: { before: "2024-12-15T00:00:00Z" },
+                },
+                price: 29.97,
+                estimatedDays: { min: 1, max: 1 },
+              },
+              {
+                id: "tier_after_holiday",
+                label: "Overnight Shipping",
+                criteria: {
+                  date: { after: "2024-12-30T23:59:59Z" },
+                },
+                price: 29.97,
+                estimatedDays: { min: 1, max: 1 },
+              },
+            ],
+          },
+        },
+      ],
+    } as any;
 
-    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
-    const method = methods[0];
+    it("should show method before holiday blackout period", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-10"),
+      };
 
-    expect(method.tierId).toBe("normal");
-    expect(method.name).toBe("Express Shipping");
-    expect(method.price).toBe(9.99);
-    expect(method.estimatedDays).toEqual({ min: 2, max: 3 });
+      const methods = getShippingMethodsForDisplay(orLogicConfig, context);
+
+      expect(methods).toHaveLength(1);
+      expect(methods[0].methodId).toBe("shipping.overnight.seasonal");
+      expect(methods[0].tierId).toBe("tier_before_holiday");
+      expect(methods[0].available).toBe(true);
+    });
+
+    it("should hide method during holiday blackout period (no matching tier)", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2024-12-20"),
+      };
+
+      const methods = getShippingMethodsForDisplay(orLogicConfig, context);
+
+      // No tier matches, so method should be filtered out
+      expect(methods).toHaveLength(0);
+    });
+
+    it("should show method after holiday blackout period", () => {
+      const context: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        locale: "en",
+        orderDate: new Date("2025-01-02"),
+      };
+
+      const methods = getShippingMethodsForDisplay(orLogicConfig, context);
+
+      expect(methods).toHaveLength(1);
+      expect(methods[0].methodId).toBe("shipping.overnight.seasonal");
+      expect(methods[0].tierId).toBe("tier_after_holiday");
+      expect(methods[0].available).toBe(true);
+    });
   });
 
-  it("should match first tier when orderDate not provided (backward compatibility)", () => {
-    const context: EvaluationContext = {
-      orderValue: 100,
-      itemCount: 2,
-      country: "US",
-      locale: "en",
-      // No orderDate provided
-    };
+  describe("Edge cases", () => {
+    it("should handle tier with only 'after' criteria", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "After Dec 15",
+                  criteria: {
+                    date: { after: "2024-12-15" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
 
-    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
-    const method = methods[0];
+      const beforeContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-10"),
+      };
 
-    // When orderDate is not provided, date criteria defaults to true (backward compatibility)
-    // So first tier with date criteria will match (christmas_rush in this case)
-    expect(method.tierId).toBe("christmas_rush");
-    expect(method.price).toBe(14.99);
+      const beforeMethods = getShippingMethodsForDisplay(config, beforeContext);
+      expect(beforeMethods).toHaveLength(0);
+
+      const afterContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-20"),
+      };
+
+      const afterMethods = getShippingMethodsForDisplay(config, afterContext);
+      expect(afterMethods).toHaveLength(1);
+      expect(afterMethods[0].tierId).toBe("tier1");
+    });
+
+    it("should handle tier with only 'before' criteria", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "Before Dec 15",
+                  criteria: {
+                    date: { before: "2024-12-15" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      const beforeContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-10"),
+      };
+
+      const beforeMethods = getShippingMethodsForDisplay(config, beforeContext);
+      expect(beforeMethods).toHaveLength(1);
+      expect(beforeMethods[0].tierId).toBe("tier1");
+
+      const afterContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-20"),
+      };
+
+      const afterMethods = getShippingMethodsForDisplay(config, afterContext);
+      expect(afterMethods).toHaveLength(0);
+    });
+
+    it("should respect time component in date comparisons", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            conditions: {
+              date: { after: "2024-12-15T14:00:00Z" },
+            },
+            pricing: {
+              type: "flat",
+              amount: 10,
+            },
+          },
+        ],
+      } as any;
+
+      // Before the exact time - should not match
+      const beforeContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T13:59:59Z"),
+      };
+      const beforeMethods = getShippingMethodsForDisplay(config, beforeContext);
+      expect(beforeMethods).toHaveLength(0);
+
+      // Exact time - should match (inclusive)
+      const exactContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:00:00Z"),
+      };
+      const exactMethods = getShippingMethodsForDisplay(config, exactContext);
+      expect(exactMethods).toHaveLength(1);
+
+      // After the time - should match
+      const afterContext: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:00:01Z"),
+      };
+      const afterMethods = getShippingMethodsForDisplay(config, afterContext);
+      expect(afterMethods).toHaveLength(1);
+    });
+  });
+
+  describe("Time and timezone support", () => {
+    it("should compare times correctly with 'after' criteria", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "After 2pm UTC",
+                  criteria: {
+                    date: { after: "2024-12-15T14:00:00Z" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      // 1:59 PM UTC - should not match
+      const before: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T13:59:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, before)).toHaveLength(0);
+
+      // 2:00 PM UTC - should match (inclusive)
+      const exact: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:00:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, exact)).toHaveLength(1);
+
+      // 2:01 PM UTC - should match
+      const after: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:01:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, after)).toHaveLength(1);
+    });
+
+    it("should compare times correctly with 'before' criteria", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "Before 5pm UTC",
+                  criteria: {
+                    date: { before: "2024-12-15T17:00:00Z" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      // 4:59 PM UTC - should match
+      const before: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T16:59:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, before)).toHaveLength(1);
+
+      // 5:00 PM UTC - should NOT match (exclusive)
+      const exact: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T17:00:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, exact)).toHaveLength(0);
+
+      // 5:01 PM UTC - should not match
+      const after: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T17:01:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, after)).toHaveLength(0);
+    });
+
+    it("should handle timezone conversions correctly", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "After 10am EST on Dec 15",
+                  criteria: {
+                    // 10:00 AM EST = 3:00 PM UTC (EST is UTC-5)
+                    date: { after: "2024-12-15T15:00:00Z" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      // 9:59 AM EST = 2:59 PM UTC - should not match
+      const before: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:59:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, before)).toHaveLength(0);
+
+      // 10:00 AM EST = 3:00 PM UTC - should match
+      const exact: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T15:00:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, exact)).toHaveLength(1);
+    });
+
+    it("should handle time ranges (after and before)", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "business_hours",
+                  label: "Business Hours (9am-5pm UTC)",
+                  criteria: {
+                    date: {
+                      after: "2024-12-15T09:00:00Z",
+                      before: "2024-12-15T17:00:00Z",
+                    },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      // 8:59 AM - before range
+      const tooEarly: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T08:59:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, tooEarly)).toHaveLength(0);
+
+      // 9:00 AM - start of range (inclusive)
+      const start: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T09:00:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, start)).toHaveLength(1);
+
+      // 12:00 PM - middle of range
+      const middle: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T12:00:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, middle)).toHaveLength(1);
+
+      // 4:59 PM - just before end
+      const almostEnd: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T16:59:59Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, almostEnd)).toHaveLength(1);
+
+      // 5:00 PM - end of range (exclusive)
+      const end: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T17:00:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, end)).toHaveLength(0);
+
+      // 5:01 PM - after range
+      const tooLate: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T17:01:00Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, tooLate)).toHaveLength(0);
+    });
+
+    it("should handle different timezone offsets in ISO strings", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "After midnight UTC on Dec 16",
+                  criteria: {
+                    date: { after: "2024-12-16T00:00:00Z" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      // 7:00 PM EST on Dec 15 = 12:00 AM UTC on Dec 16 (EST is UTC-5)
+      const estMidnight: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T19:00:00-05:00"),
+      };
+      expect(getShippingMethodsForDisplay(config, estMidnight)).toHaveLength(1);
+
+      // 6:59 PM EST on Dec 15 = 11:59 PM UTC on Dec 15 (before threshold)
+      const estBeforeMidnight: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T18:59:00-05:00"),
+      };
+      expect(getShippingMethodsForDisplay(config, estBeforeMidnight)).toHaveLength(0);
+    });
+
+    it("should support millisecond precision", () => {
+      const config = {
+        version: "1.0",
+        methods: [
+          {
+            id: "test",
+            enabled: true,
+            name: "Test",
+            pricing: {
+              type: "tiered",
+              rules: [
+                {
+                  id: "tier1",
+                  label: "After cutoff",
+                  criteria: {
+                    date: { after: "2024-12-15T14:00:00.500Z" },
+                  },
+                  price: 10,
+                },
+              ],
+            },
+          },
+        ],
+      } as any;
+
+      // 499ms - before
+      const before: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:00:00.499Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, before)).toHaveLength(0);
+
+      // 500ms - exact match (inclusive)
+      const exact: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:00:00.500Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, exact)).toHaveLength(1);
+
+      // 501ms - after
+      const after: EvaluationContext = {
+        orderValue: 100,
+        itemCount: 2,
+        country: "US",
+        orderDate: new Date("2024-12-15T14:00:00.501Z"),
+      };
+      expect(getShippingMethodsForDisplay(config, after)).toHaveLength(1);
+    });
   });
 });

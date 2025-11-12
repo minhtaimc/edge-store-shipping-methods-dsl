@@ -27,6 +27,7 @@ function evaluateTieredRule(rule: any, context: EvaluationContext): boolean {
   }
 
   // Check date conditions (for seasonal/holiday pricing)
+  // Supports full ISO 8601 timestamps with timezone
   if (rule.criteria.date) {
     const { after, before } = rule.criteria.date;
     const orderDate = context.orderDate;
@@ -35,19 +36,17 @@ function evaluateTieredRule(rule: any, context: EvaluationContext): boolean {
     // Default to true to maintain backward compatibility
     if (!orderDate) return true;
 
-    const orderDateOnly = new Date(orderDate);
-    orderDateOnly.setHours(0, 0, 0, 0);
+    // Parse orderDate as full timestamp (preserves time and timezone)
+    const orderTimestamp = new Date(orderDate).getTime();
 
     if (after) {
-      const afterDate = new Date(after);
-      afterDate.setHours(0, 0, 0, 0);
-      if (orderDateOnly < afterDate) return false;
+      const afterTimestamp = new Date(after).getTime();
+      if (orderTimestamp < afterTimestamp) return false;
     }
 
     if (before) {
-      const beforeDate = new Date(before);
-      beforeDate.setHours(0, 0, 0, 0);
-      if (orderDateOnly > beforeDate) return false;
+      const beforeTimestamp = new Date(before).getTime();
+      if (orderTimestamp >= beforeTimestamp) return false;
     }
   }
 
@@ -181,6 +180,7 @@ function calculateShippingMethod(
       price: 0,
       available: false,
       enabled: method.enabled,
+      availabilityMode: "hide",
       message: "No matching tier",
       meta: method.meta,
     };

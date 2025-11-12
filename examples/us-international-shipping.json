@@ -29,16 +29,19 @@
         "type": "tiered",
         "rules": [
           {
-            "id": "tier_paid",
+            "id": "tier_paid_christmas",
             "label": {
-              "en": "Standard Shipping",
-              "vi": "Giao hàng tiêu chuẩn"
+              "en": "Standard Shipping (Order by Dec 12 for Christmas)",
+              "vi": "Giao hàng tiêu chuẩn (Đặt trước 12/12 để nhận trước Noel)"
             },
             "criteria": {
               "order": {
                 "value": {
                   "max": 99.99
                 }
+              },
+              "date": {
+                "before": "2024-12-12T23:59:59Z"
               }
             },
             "price": 4.97,
@@ -48,22 +51,82 @@
             }
           },
           {
-            "id": "tier_free",
+            "id": "tier_free_christmas",
             "label": {
-              "en": "Free Standard Shipping",
-              "vi": "Miễn phí giao hàng tiêu chuẩn"
+              "en": "Free Standard Shipping (Order by Dec 12 for Christmas)",
+              "vi": "Miễn phí giao hàng tiêu chuẩn (Đặt trước 12/12 để nhận trước Noel)"
             },
             "criteria": {
               "order": {
                 "value": {
                   "min": 100
                 }
+              },
+              "date": {
+                "before": "2024-12-12T23:59:59Z"
               }
             },
             "price": 0,
             "estimatedDays": {
               "min": 5,
               "max": 7
+            },
+            "promoText": {
+              "en": "You've unlocked free standard shipping!",
+              "vi": "Bạn đã mở khóa miễn phí vận chuyển tiêu chuẩn!"
+            },
+            "availability": {
+              "mode": "show_hint",
+              "when": ["order.value.min"],
+              "message": {
+                "en": "Add ${remaining} more to unlock free standard shipping",
+                "vi": "Thêm ${remaining} nữa để được miễn phí vận chuyển tiêu chuẩn"
+              },
+              "showProgress": true
+            }
+          },
+          {
+            "id": "tier_paid_post_christmas",
+            "label": {
+              "en": "Standard Shipping (Ships after Christmas)",
+              "vi": "Giao hàng tiêu chuẩn (Giao sau Noel)"
+            },
+            "criteria": {
+              "order": {
+                "value": {
+                  "max": 99.99
+                }
+              },
+              "date": {
+                "after": "2024-12-12T23:59:59Z"
+              }
+            },
+            "price": 4.97,
+            "estimatedDays": {
+              "min": 7,
+              "max": 10
+            }
+          },
+          {
+            "id": "tier_free_post_christmas",
+            "label": {
+              "en": "Free Standard Shipping (Ships after Christmas)",
+              "vi": "Miễn phí giao hàng tiêu chuẩn (Giao sau Noel)"
+            },
+            "criteria": {
+              "order": {
+                "value": {
+                  "min": 100
+                }
+              },
+              "date": {
+                "after": "2024-12-12T23:59:59Z"
+              }
+            },
+            "price": 0,
+            "estimatedDays": {
+              "min": 7,
+              "max": 10
             },
             "promoText": {
               "en": "You've unlocked free standard shipping!",
@@ -109,16 +172,19 @@
         "type": "tiered",
         "rules": [
           {
-            "id": "tier_paid",
+            "id": "tier_paid_christmas",
             "label": {
-              "en": "Express Shipping",
-              "vi": "Giao hàng nhanh"
+              "en": "Express Shipping (Order by Dec 19 for Christmas)",
+              "vi": "Giao hàng nhanh (Đặt trước 19/12 để nhận trước Noel)"
             },
             "criteria": {
               "order": {
                 "value": {
                   "max": 499.99
                 }
+              },
+              "date": {
+                "before": "2024-12-19T23:59:59Z"
               }
             },
             "price": 9.97,
@@ -128,22 +194,86 @@
             }
           },
           {
-            "id": "tier_free",
+            "id": "tier_free_christmas",
             "label": {
-              "en": "Free Express Shipping",
-              "vi": "Miễn phí giao hàng nhanh"
+              "en": "Free Express Shipping (Order by Dec 19 for Christmas)",
+              "vi": "Miễn phí giao hàng nhanh (Đặt trước 19/12 để nhận trước Noel)"
             },
             "criteria": {
               "order": {
                 "value": {
                   "min": 500
                 }
+              },
+              "date": {
+                "before": "2024-12-19T23:59:59Z"
               }
             },
             "price": 0,
             "estimatedDays": {
               "min": 2,
               "max": 3
+            },
+            "promoText": {
+              "en": "You've unlocked free express shipping!",
+              "vi": "Bạn đã mở khóa miễn phí vận chuyển nhanh!"
+            },
+            "upgradeMessage": {
+              "en": "Premium shipping at no cost for orders over $500",
+              "vi": "Giao hàng cao cấp miễn phí cho đơn hàng trên $500"
+            },
+            "availability": {
+              "mode": "show_hint",
+              "when": ["order.value.min"],
+              "message": {
+                "en": "Add ${remaining} more to unlock free express shipping",
+                "vi": "Thêm ${remaining} nữa để được miễn phí vận chuyển nhanh"
+              },
+              "showProgress": true
+            }
+          },
+          {
+            "id": "tier_paid_post_christmas",
+            "label": {
+              "en": "Express Shipping (Ships after Christmas)",
+              "vi": "Giao hàng nhanh (Giao sau Noel)"
+            },
+            "criteria": {
+              "order": {
+                "value": {
+                  "max": 499.99
+                }
+              },
+              "date": {
+                "after": "2024-12-19T23:59:59Z"
+              }
+            },
+            "price": 9.97,
+            "estimatedDays": {
+              "min": 4,
+              "max": 6
+            }
+          },
+          {
+            "id": "tier_free_post_christmas",
+            "label": {
+              "en": "Free Express Shipping (Ships after Christmas)",
+              "vi": "Miễn phí giao hàng nhanh (Giao sau Noel)"
+            },
+            "criteria": {
+              "order": {
+                "value": {
+                  "min": 500
+                }
+              },
+              "date": {
+                "after": "2024-12-19T23:59:59Z"
+              }
+            },
+            "price": 0,
+            "estimatedDays": {
+              "min": 4,
+              "max": 6
             },
             "promoText": {
               "en": "You've unlocked free express shipping!",
@@ -190,13 +320,43 @@
         }
       },
       "pricing": {
-        "type": "item_based",
-        "firstItemPrice": 29.97,
-        "additionalItemPrice": 10.97
-      },
-      "estimatedDays": {
-        "min": 1,
-        "max": 1
+        "type": "tiered",
+        "rules": [
+          {
+            "id": "tier_before_holiday",
+            "label": {
+              "en": "Overnight Shipping",
+              "vi": "Giao hàng qua đêm"
+            },
+            "criteria": {
+              "date": {
+                "before": "2024-12-15T00:00:00Z"
+              }
+            },
+            "price": 29.97,
+            "estimatedDays": {
+              "min": 1,
+              "max": 1
+            }
+          },
+          {
+            "id": "tier_after_holiday",
+            "label": {
+              "en": "Overnight Shipping",
+              "vi": "Giao hàng qua đêm"
+            },
+            "criteria": {
+              "date": {
+                "after": "2024-12-30T23:59:59Z"
+              }
+            },
+            "price": 29.97,
+            "estimatedDays": {
+              "min": 1,
+              "max": 1
+            }
+          }
+        ]
       }
     },
     {
