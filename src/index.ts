@@ -8,6 +8,7 @@ export type {
   EstimatedDays,
   GeoCountry,
   OrderConditions,
+  DateCriteria,
   Conditions,
   Availability,
   Rule,

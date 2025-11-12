@@ -344,3 +344,121 @@ describe("v1.4.0 - Configuration validation", () => {
     expect(() => validateShippingConfig(config)).not.toThrow();
   });
 });
+
+describe("Date-based criteria for seasonal/holiday pricing", () => {
+  const seasonalConfig = {
+    version: "1.0",
+    methods: [
+      {
+        id: "shipping.seasonal.express",
+        enabled: true,
+        name: "Express Shipping",
+        conditions: {
+          geo: { country: { include: ["US"] } },
+        },
+        pricing: {
+          type: "tiered",
+          rules: [
+            {
+              id: "christmas_rush",
+              label: "Christmas Express (Order by Dec 20)",
+              criteria: {
+                date: { after: "2024-12-10", before: "2024-12-20" },
+              },
+              price: 14.99,
+              estimatedDays: { min: 2, max: 3 },
+            },
+            {
+              id: "post_christmas",
+              label: "Express Shipping (After Christmas)",
+              criteria: {
+                date: { after: "2024-12-20", before: "2024-12-27" },
+              },
+              price: 12.99,
+              estimatedDays: { min: 7, max: 10 },
+            },
+            {
+              id: "normal",
+              label: "Express Shipping",
+              criteria: {},
+              price: 9.99,
+              estimatedDays: { min: 2, max: 3 },
+            },
+          ],
+        },
+      },
+    ],
+  } as any;
+
+  it("should match Christmas rush tier during holiday period", () => {
+    const context: EvaluationContext = {
+      orderValue: 100,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+      orderDate: new Date("2024-12-15"),
+    };
+
+    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+    const method = methods[0];
+
+    expect(method.tierId).toBe("christmas_rush");
+    expect(method.name).toBe("Christmas Express (Order by Dec 20)");
+    expect(method.price).toBe(14.99);
+    expect(method.estimatedDays).toEqual({ min: 2, max: 3 });
+  });
+
+  it("should match post-Christmas tier after deadline", () => {
+    const context: EvaluationContext = {
+      orderValue: 100,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+      orderDate: new Date("2024-12-22"),
+    };
+
+    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+    const method = methods[0];
+
+    expect(method.tierId).toBe("post_christmas");
+    expect(method.name).toBe("Express Shipping (After Christmas)");
+    expect(method.price).toBe(12.99);
+    expect(method.estimatedDays).toEqual({ min: 7, max: 10 });
+  });
+
+  it("should match normal tier outside holiday periods", () => {
+    const context: EvaluationContext = {
+      orderValue: 100,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+      orderDate: new Date("2024-11-15"),
+    };
+
+    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+    const method = methods[0];
+
+    expect(method.tierId).toBe("normal");
+    expect(method.name).toBe("Express Shipping");
+    expect(method.price).toBe(9.99);
+    expect(method.estimatedDays).toEqual({ min: 2, max: 3 });
+  });
+
+  it("should match first tier when orderDate not provided (backward compatibility)", () => {
+    const context: EvaluationContext = {
+      orderValue: 100,
+      itemCount: 2,
+      country: "US",
+      locale: "en",
+      // No orderDate provided
+    };
+
+    const methods = getShippingMethodsForDisplay(seasonalConfig, context);
+    const method = methods[0];
+
+    // When orderDate is not provided, date criteria defaults to true (backward compatibility)
+    // So first tier with date criteria will match (christmas_rush in this case)
+    expect(method.tierId).toBe("christmas_rush");
+    expect(method.price).toBe(14.99);
+  });
+});

@@ -3,6 +3,7 @@ import type {
   OrderConditions,
   RangeNumber,
   GeoCountry,
+  DateCriteria,
   EvaluationContext,
 } from "./types.js";
 
@@ -84,6 +85,46 @@ function evaluateGeoCountry(
 }
 
 /**
+ * Evaluate date criteria for seasonal/holiday pricing
+ */
+function evaluateDateCriteria(
+  dateCriteria: DateCriteria | undefined,
+  orderDate: Date | undefined
+): boolean {
+  if (!dateCriteria) return true;
+
+  // If no orderDate provided in context, date criteria cannot be evaluated
+  // Default to true (allow) to maintain backward compatibility
+  if (!orderDate) return true;
+
+  const { after, before } = dateCriteria;
+
+  // Normalize orderDate to start of day for comparison
+  const orderDateOnly = new Date(orderDate);
+  orderDateOnly.setHours(0, 0, 0, 0);
+
+  // Check if after date
+  if (after) {
+    const afterDate = new Date(after);
+    afterDate.setHours(0, 0, 0, 0);
+    if (orderDateOnly < afterDate) {
+      return false;
+    }
+  }
+
+  // Check if before date
+  if (before) {
+    const beforeDate = new Date(before);
+    beforeDate.setHours(0, 0, 0, 0);
+    if (orderDateOnly > beforeDate) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+/**
  * Evaluate all conditions for a shipping method
  */
 export function evaluateConditions(
@@ -102,6 +143,13 @@ export function evaluateConditions(
   // Evaluate order conditions
   if (conditions.order) {
     if (!evaluateOrderConditions(conditions.order, context)) {
+      return false;
+    }
+  }
+
+  // Evaluate date conditions (for seasonal/holiday pricing)
+  if (conditions.date) {
+    if (!evaluateDateCriteria(conditions.date, context.orderDate)) {
       return false;
     }
   }

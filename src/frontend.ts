@@ -15,6 +15,7 @@ import { resolveLocalizedString, interpolateMessage } from "./utils.js";
 
 // Internal helpers
 function evaluateTieredRule(rule: any, context: EvaluationContext): boolean {
+  // Check order conditions
   if (rule.criteria.order) {
     const { value, items, weight } = rule.criteria.order;
     if (value?.min !== undefined && context.orderValue < value.min) return false;
@@ -24,6 +25,32 @@ function evaluateTieredRule(rule: any, context: EvaluationContext): boolean {
     if (weight?.min !== undefined && (context.weight ?? 0) < weight.min) return false;
     if (weight?.max !== undefined && (context.weight ?? 0) > weight.max) return false;
   }
+
+  // Check date conditions (for seasonal/holiday pricing)
+  if (rule.criteria.date) {
+    const { after, before } = rule.criteria.date;
+    const orderDate = context.orderDate;
+
+    // If no orderDate provided, date criteria cannot be evaluated
+    // Default to true to maintain backward compatibility
+    if (!orderDate) return true;
+
+    const orderDateOnly = new Date(orderDate);
+    orderDateOnly.setHours(0, 0, 0, 0);
+
+    if (after) {
+      const afterDate = new Date(after);
+      afterDate.setHours(0, 0, 0, 0);
+      if (orderDateOnly < afterDate) return false;
+    }
+
+    if (before) {
+      const beforeDate = new Date(before);
+      beforeDate.setHours(0, 0, 0, 0);
+      if (orderDateOnly > beforeDate) return false;
+    }
+  }
+
   return true;
 }
 

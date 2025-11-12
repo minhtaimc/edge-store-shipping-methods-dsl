@@ -92,6 +92,15 @@
       }
     },
 
+    "DateCriteria": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "after": { "type": "string", "format": "date" },
+        "before": { "type": "string", "format": "date" }
+      }
+    },
+
     "Availability": {
       "type": "object",
       "additionalProperties": false,
@@ -132,7 +141,8 @@
               "properties": {
                 "country": { "$ref": "#/$defs/GeoCountry" }
               }
-            }
+            },
+            "date": { "$ref": "#/$defs/DateCriteria" }
           }
         },
         "price": { "type": "number", "minimum": 0 },

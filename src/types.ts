@@ -23,9 +23,15 @@ export interface OrderConditions {
   weight?: RangeNumber;
 }
 
+export interface DateCriteria {
+  after?: string;  // ISO 8601 date string (e.g., "2024-12-10")
+  before?: string; // ISO 8601 date string (e.g., "2024-12-25")
+}
+
 export interface Conditions {
   geo?: { country?: GeoCountry };
   order?: OrderConditions;
+  date?: DateCriteria;
 }
 
 export interface Availability {
@@ -41,6 +47,7 @@ export interface Rule {
   criteria: {
     order?: OrderConditions;
     geo?: { country?: GeoCountry };
+    date?: DateCriteria;
   };
   price: number;
   estimatedDays?: EstimatedDays;
@@ -92,6 +99,7 @@ export interface EvaluationContext {
   country: string; // ISO 3166-1 alpha-2
   currency?: string;
   locale?: string;
+  orderDate?: Date; // Order date for seasonal/holiday pricing
 }
 
 // Custom plugin interface for extensibility

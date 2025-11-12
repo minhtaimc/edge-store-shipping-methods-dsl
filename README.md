@@ -229,6 +229,56 @@ Different pricing based on matching criteria (first match wins).
 }
 ```
 
+### Seasonal/Holiday Pricing
+
+Use date-based criteria for seasonal pricing (Christmas, Black Friday, etc.).
+
+```json
+{
+  "pricing": {
+    "type": "tiered",
+    "rules": [
+      {
+        "id": "christmas_rush",
+        "label": "Christmas Express (Order by Dec 20)",
+        "criteria": {
+          "date": { "after": "2024-12-10", "before": "2024-12-20" }
+        },
+        "price": 14.99,
+        "estimatedDays": { "min": 2, "max": 3 }
+      },
+      {
+        "id": "post_christmas",
+        "label": "Express Shipping (After Christmas)",
+        "criteria": {
+          "date": { "after": "2024-12-20", "before": "2024-12-27" }
+        },
+        "price": 12.99,
+        "estimatedDays": { "min": 7, "max": 10 }
+      },
+      {
+        "id": "normal",
+        "label": "Express Shipping",
+        "criteria": {},
+        "price": 9.99,
+        "estimatedDays": { "min": 2, "max": 3 }
+      }
+    ]
+  }
+}
+```
+
+**Important:** Include `orderDate` in context to enable date-based matching:
+
+```typescript
+const context = {
+  orderValue: 100,
+  itemCount: 2,
+  country: "US",
+  orderDate: new Date(), // Required for date-based criteria
+};
+```
+
 ### Custom
 
 Extensible plugin system for custom logic (e.g., weight-based).
@@ -818,6 +868,7 @@ interface EvaluationContext {
   country: string;        // ISO 3166-1 alpha-2 (e.g., "US", "CA")
   currency?: string;      // ISO 4217 (e.g., "USD")
   locale?: string;        // Language code (e.g., "en", "vi")
+  orderDate?: Date;       // Order date for seasonal/holiday pricing
 }
 
 // Localized string (single string or locale map)
